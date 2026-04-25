@@ -223,7 +223,7 @@ io.on('connection', async (socket) => {
 })
 
 const DJANGO_URL  = process.env.DJANGO_URL  || 'http://localhost:8000'
-const NODE_SECRET = process.env.JWT_SECRET  || 'node_internal_secret'
+const NODE_SECRET = process.env.NODE_SECRET  || 'node_internal_secret'
 
 async function djangoPost(path, body) {
   try {
