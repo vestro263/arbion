@@ -1,10 +1,8 @@
-import { useState, useCallback } from 'react'
-import { fetchToken } from '../lib/auth'
-
 export function useAuth() {
-  const [jwt,      setJwt]      = useState(null)
+  const [jwt, setJwt] = useState(null)
   const [username, setUsername] = useState('')
 
+  // 🔹 normal login
   const login = useCallback(async (user, pass) => {
     const token = await fetchToken(user, pass)
     setJwt(token)
@@ -12,10 +10,16 @@ export function useAuth() {
     return token
   }, [])
 
+  // 🔹 token login (Google/signup)
+  const loginWithToken = useCallback((token, user) => {
+    setJwt(token)
+    setUsername(user)
+  }, [])
+
   const logout = useCallback(() => {
     setJwt(null)
     setUsername('')
   }, [])
 
-  return { jwt, username, login, logout }
+  return { jwt, username, login, loginWithToken, logout }
 }

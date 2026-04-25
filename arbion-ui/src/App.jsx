@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth }      from './hooks/useAuth'
 import { useSocket }    from './hooks/useSocket'
 import { usePriceFeed } from './hooks/usePriceFeed'
-
 import Nav            from './components/Nav'
 import Watchlist      from './components/Watchlist'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -17,7 +16,7 @@ import { PAIRS, DEFAULT_PAIR } from './constants/pairs'
 import './App.css'
 
 export default function App() {
-  const { jwt, username, login, logout } = useAuth()
+const { jwt, username, login, loginWithToken, logout } = useAuth()
   const {
     connect, disconnect, placeOrder, closeTrade, switchSymbol,
     connected, inTrade, tradeStatus, trades, totalPnl,
@@ -69,8 +68,8 @@ export default function App() {
   }
 
 
-const handleLogin = (token, username) => {
-  localStorage.setItem("token", token)
+const handleLogin = async (user, pass) => {
+  const token = await login(user, pass)
   connect(token)
 }
   const handleLogout = () => {
