@@ -104,3 +104,75 @@ def google_auth(request):
             'avatar': user.avatar,
         }
     })
+
+
+
+def get_tokens(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        "refresh": str(refresh),
+        "access": str(refresh.access_token),
+    }
+
+
+def ensure_wallet(user):
+    Wallet.objects.get_or_create(user=user)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def signup(request):
+    username = request.data.get('username', '').strip()
+    email    = request.data.get('email', '').strip()
+    password = request.data.get('password', '').strip()
+
+    # ── validations ─────────────────────────────
+    if not username or not password:
+        return Response(
+            {"error": "Username and password are required"},
+            status=400
+        )
+
+    if len(password) < 6:
+        return Response(
+            {"error": "Password must be at least 6 characters"},
+            status=400
+        )
+
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {"error": "Username already taken"},
+            status=400
+        )
+
+    if email and User.objects.filter(email=email).exists():
+        return Response(
+            {"error": "Email already registered"},
+            status=400
+        )
+
+    # ── create user ─────────────────────────────
+    try:
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password
+        )
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+    # ── create wallet ───────────────────────────
+    ensure_wallet(user)
+
+    # ── generate tokens ─────────────────────────
+    tokens = get_tokens(user)
+
+    return Response({
+        "access": tokens["access"],
+        "refresh": tokens["refresh"],
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+        }
+    }, status=201)
