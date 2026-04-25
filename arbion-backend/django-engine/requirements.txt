@@ -9,3 +9,4 @@ whitenoise
 psycopg2-binary
 requests
 dj-database-url
+google-auth
