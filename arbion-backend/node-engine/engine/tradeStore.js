@@ -7,8 +7,10 @@ function getUserTrades(userId) {
 }
 
 function createTrade({ userId, symbol, side, size, entryPrice, sl, tp }) {
+  if (!store[userId]) store[userId] = []   // ← initialize if missing
+
   const trade = {
-    id:         uuid(),
+    id:         randomUUID(),              // ← was uuid() which is undefined
     userId,
     symbol,
     side,
