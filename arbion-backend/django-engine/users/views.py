@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
@@ -10,106 +10,97 @@ import os
 
 from .models import Wallet
 
+User = get_user_model()
+
+
+def get_tokens(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
+
+def ensure_wallet(user):
+    Wallet.objects.get_or_create(user=user)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def google_auth(request):
-    id_token     = request.data.get('id_token')
+    id_token = request.data.get('id_token')
     access_token = request.data.get('access_token')
 
-    if id_token:
-        # verify ID token (from One Tap)
-        try:
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    if not client_id:
+        return Response({'error': 'Server misconfigured: missing GOOGLE_CLIENT_ID'}, status=500)
+
+    try:
+        # ── One Tap flow (ID token) ───────────────────────────────
+        if id_token:
             info = google_id_token.verify_oauth2_token(
                 id_token,
                 google_requests.Request(),
-                os.getenv('GOOGLE_CLIENT_ID'),
+                client_id,
             )
-        except ValueError as e:
-            return Response({'error': str(e)}, status=401)
 
-        google_id = info['sub']
-        email     = info['email']
-        name      = info.get('name', '')
-        avatar    = info.get('picture', '')
+        # ── OAuth flow (access token) ─────────────────────────────
+        elif access_token:
+            google_resp = http_requests.get(
+                'https://www.googleapis.com/oauth2/v3/userinfo',
+                headers={'Authorization': f'Bearer {access_token}'}
+            )
+            if google_resp.status_code != 200:
+                return Response({'error': 'Invalid Google token'}, status=401)
 
-    elif access_token:
-        # verify access token (from OAuth flow)
-        google_resp = http_requests.get(
-            'https://www.googleapis.com/oauth2/v3/userinfo',
-            headers={'Authorization': f'Bearer {access_token}'}
-        )
-        if google_resp.status_code != 200:
-            return Response({'error': 'Invalid Google token'}, status=401)
+            info = google_resp.json()
 
-        info      = google_resp.json()
-        google_id = info.get('sub')
-        email     = info.get('email')
-        name      = info.get('name', '')
-        avatar    = info.get('picture', '')
+        else:
+            return Response({'error': 'id_token or access_token required'}, status=400)
 
-    else:
-        return Response({'error': 'id_token or access_token required'}, status=400)
+    except Exception as e:
+        return Response({'error': str(e)}, status=401)
+
+    # ── extract user data safely ──────────────────────────────────
+    google_id = info.get('sub')
+    email     = info.get('email')
+    name      = info.get('name', '')
+    avatar    = info.get('picture', '')
 
     if not google_id or not email:
-        return Response({'error': 'Could not get user info'}, status=400)
+        return Response({'error': 'Could not retrieve user info from Google'}, status=400)
+
+    # ── create / get user ─────────────────────────────────────────
+    username = email.split('@')[0]
 
     user, created = User.objects.get_or_create(
         google_id=google_id,
         defaults={
-            'username': email.split('@')[0],
-            'email':    email,
-            'avatar':   avatar,
+            'username': username,
+            'email': email,
+            'avatar': avatar,
         }
     )
-    if not created:
-        user.avatar = avatar
-        user.save(update_fields=['avatar'])
 
+    if not created:
+        # update avatar if changed
+        if avatar and user.avatar != avatar:
+            user.avatar = avatar
+            user.save(update_fields=['avatar'])
+
+    # ── ensure wallet exists ──────────────────────────────────────
     ensure_wallet(user)
+
+    # ── generate JWT tokens ───────────────────────────────────────
     tokens = get_tokens(user)
 
     return Response({
-        'access':  tokens['access'],
+        'access': tokens['access'],
         'refresh': tokens['refresh'],
         'user': {
-            'id':       user.id,
+            'id': user.id,
             'username': user.username,
-            'email':    user.email,
-            'avatar':   user.avatar,
+            'email': user.email,
+            'avatar': user.avatar,
         }
     })
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def signup(request):
-    username = request.data.get('username', '').strip()
-    email    = request.data.get('email',    '').strip()
-    password = request.data.get('password', '').strip()
-
-    if not username or not password:
-        return Response({'error': 'Username and password required'}, status=400)
-
-    if User.objects.filter(username=username).exists():
-        return Response({'error': 'Username already taken'}, status=400)
-
-    if email and User.objects.filter(email=email).exists():
-        return Response({'error': 'Email already registered'}, status=400)
-
-    user = User.objects.create_user(
-        username=username,
-        email=email,
-        password=password,
-    )
-    ensure_wallet(user)
-    tokens = get_tokens(user)
-
-    return Response({
-        'access':  tokens['access'],
-        'refresh': tokens['refresh'],
-        'user': {
-            'id':       user.id,
-            'username': user.username,
-            'email':    user.email,
-        }
-    }, status=201)
