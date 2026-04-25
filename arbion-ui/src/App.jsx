@@ -18,15 +18,17 @@ import './App.css'
 export default function App() {
   const { jwt, username, login, logout } = useAuth()
   const {
-    connect, disconnect, placeOrder,
+    connect, disconnect, placeOrder, closeTrade,  // ✅ added closeTrade
     connected, price, priceDir,
     inTrade, tradeStatus,
     trades, totalPnl,
+    switchSymbol,                                 // ✅ added switchSymbol
   } = useSocket()
 
   const [activePair,      setActivePair]      = useState(DEFAULT_PAIR)
   const [watchlistPrices, setWatchlistPrices] = useState({})
 
+  // ── watchlist WebSocket feeds ─────────────────────────────────────────────
   useEffect(() => {
     let alive = true
     const sockets = {}
@@ -54,7 +56,6 @@ export default function App() {
       }
 
       ws.onerror = () => {}
-
       sockets[pair.id] = ws
     })
 
@@ -62,10 +63,15 @@ export default function App() {
       alive = false
       Object.values(sockets).forEach(ws => {
         if (ws.readyState === WebSocket.OPEN) ws.close()
-        // CONNECTING sockets: onopen will see alive=false and close there
       })
     }
   }, [])
+
+  // ── notify server when pair changes ──────────────────────────────────────
+  const handlePairChange = (pair) => {
+    setActivePair(pair)
+    if (connected) switchSymbol(pair.wsSymbol)  // ✅ tell server to switch feed
+  }
 
   const handleLogin = async (user, pass) => {
     const token = await login(user, pass)
@@ -81,7 +87,7 @@ export default function App() {
     <div className="app-body">
       <Watchlist
         activePair={activePair}
-        onPairChange={setActivePair}
+        onPairChange={handlePairChange}           // ✅ was setActivePair directly
         prices={watchlistPrices}
       />
       <Trade
@@ -94,6 +100,7 @@ export default function App() {
         tradeCount={trades.length}
         onBuy={() => placeOrder('buy')}
         onSell={() => placeOrder('sell')}
+        onClose={closeTrade}                      // ✅ was missing
         activePair={activePair}
       />
     </div>
