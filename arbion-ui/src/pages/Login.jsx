@@ -12,6 +12,9 @@ export default function Login({ onLogin }) {
   const navigate              = useNavigate()
 
   useEffect(() => {
+    // Expose callback globally so Google script can reach it
+    window.__googleOneTapCallback = handleGoogleResponse
+
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
     script.async = true
@@ -21,7 +24,7 @@ export default function Login({ onLogin }) {
     script.onload = () => {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
+        callback: window.__googleOneTapCallback,
         auto_select: true,
         cancel_on_tap_outside: false,
       })
@@ -31,6 +34,7 @@ export default function Login({ onLogin }) {
     return () => {
       document.body.removeChild(script)
       window.google?.accounts?.id?.cancel()
+      delete window.__googleOneTapCallback
     }
   }, [])
 
@@ -106,16 +110,8 @@ export default function Login({ onLogin }) {
           {loading ? 'signing in…' : 'sign in'}
         </button>
 
-        <div className="login-divider">
-          <span>or</span>
-        </div>
+        <div className="login-divider"><span>or</span></div>
 
-        {/* Google One Tap renders its own popup, this button is a fallback */}
-        <div
-          id="g_id_onload"
-          data-client_id={GOOGLE_CLIENT_ID}
-          data-callback="handleGoogleResponse"
-        />
         <div
           className="g_id_signin"
           data-type="standard"
