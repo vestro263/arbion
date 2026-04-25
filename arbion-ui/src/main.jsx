@@ -6,11 +6,7 @@ import './styles/Portfolio.css'
 import './styles/Login.css'
 import './styles/Watchlist.css'
 import App from './App.jsx'
-import { GoogleOAuthProvider } from '@react-oauth/google'
-
-
-
-import { GoogleOAuthProvider } from '@react-oauth/google'
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
