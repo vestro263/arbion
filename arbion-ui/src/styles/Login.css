@@ -1,0 +1,125 @@
+/* ─── login ─────────────────────────────────────────────────────────────────── */
+.login-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-head);
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.brand-name {
+  font-family: var(--font-head);
+  font-size: 15px;
+  letter-spacing: .18em;
+  color: var(--text);
+}
+
+.login-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2rem;
+  margin-left: 42px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+.form-group input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+}
+
+.form-group input:focus { border-color: var(--accent); }
+
+.login-err {
+  font-size: 12px;
+  color: var(--red);
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  border: none;
+  border-radius: 7px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: opacity .15s;
+  margin-top: 4px;
+}
+
+.btn-primary:hover { opacity: .88; }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 1.25rem 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
