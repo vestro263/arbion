@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  django:
+    build: ./django-core
+    ports:
+      - "8000:8000"
+
+  node:
+    build: ./node-engine
+    ports:
+      - "4000:4000"
+
+  redis:
+    image: redis:alpine
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: arbion
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password

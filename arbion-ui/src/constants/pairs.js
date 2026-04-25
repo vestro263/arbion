@@ -1,0 +1,61 @@
+// src/constants/pairs.js
+
+// ── 30 crypto pairs ──────────────────────────────────────────────────────────
+export const PAIRS = [
+  { id: 'BTC/USD',  base: 'BTC',  quote: 'USD', label: 'BTC / USD',  wsSymbol: 'btcusdt'  },
+  { id: 'ETH/USD',  base: 'ETH',  quote: 'USD', label: 'ETH / USD',  wsSymbol: 'ethusdt'  },
+  { id: 'SOL/USD',  base: 'SOL',  quote: 'USD', label: 'SOL / USD',  wsSymbol: 'solusdt'  },
+  { id: 'BNB/USD',  base: 'BNB',  quote: 'USD', label: 'BNB / USD',  wsSymbol: 'bnbusdt'  },
+  { id: 'XRP/USD',  base: 'XRP',  quote: 'USD', label: 'XRP / USD',  wsSymbol: 'xrpusdt'  },
+  { id: 'ADA/USD',  base: 'ADA',  quote: 'USD', label: 'ADA / USD',  wsSymbol: 'adausdt'  },
+  { id: 'AVAX/USD', base: 'AVAX', quote: 'USD', label: 'AVAX / USD', wsSymbol: 'avaxusdt' },
+  { id: 'DOGE/USD', base: 'DOGE', quote: 'USD', label: 'DOGE / USD', wsSymbol: 'dogeusdt' },
+  { id: 'DOT/USD',  base: 'DOT',  quote: 'USD', label: 'DOT / USD',  wsSymbol: 'dotusdt'  },
+  { id: 'MATIC/USD',base: 'MATIC',quote: 'USD', label: 'MATIC / USD',wsSymbol: 'maticusdt'},
+  { id: 'LINK/USD', base: 'LINK', quote: 'USD', label: 'LINK / USD', wsSymbol: 'linkusdt' },
+  { id: 'UNI/USD',  base: 'UNI',  quote: 'USD', label: 'UNI / USD',  wsSymbol: 'uniusdt'  },
+  { id: 'ATOM/USD', base: 'ATOM', quote: 'USD', label: 'ATOM / USD', wsSymbol: 'atomusdt' },
+  { id: 'LTC/USD',  base: 'LTC',  quote: 'USD', label: 'LTC / USD',  wsSymbol: 'ltcusdt'  },
+  { id: 'BCH/USD',  base: 'BCH',  quote: 'USD', label: 'BCH / USD',  wsSymbol: 'bchusdt'  },
+  { id: 'XLM/USD',  base: 'XLM',  quote: 'USD', label: 'XLM / USD',  wsSymbol: 'xlmusdt'  },
+  { id: 'NEAR/USD', base: 'NEAR', quote: 'USD', label: 'NEAR / USD', wsSymbol: 'nearusdt' },
+  { id: 'APT/USD',  base: 'APT',  quote: 'USD', label: 'APT / USD',  wsSymbol: 'aptusdt'  },
+  { id: 'OP/USD',   base: 'OP',   quote: 'USD', label: 'OP / USD',   wsSymbol: 'opusdt'   },
+  { id: 'ARB/USD',  base: 'ARB',  quote: 'USD', label: 'ARB / USD',  wsSymbol: 'arbusdt'  },
+  { id: 'FIL/USD',  base: 'FIL',  quote: 'USD', label: 'FIL / USD',  wsSymbol: 'filusdt'  },
+  { id: 'ICP/USD',  base: 'ICP',  quote: 'USD', label: 'ICP / USD',  wsSymbol: 'icpusdt'  },
+  { id: 'HBAR/USD', base: 'HBAR', quote: 'USD', label: 'HBAR / USD', wsSymbol: 'hbarusdt' },
+  { id: 'VET/USD',  base: 'VET',  quote: 'USD', label: 'VET / USD',  wsSymbol: 'vetusdt'  },
+  { id: 'ALGO/USD', base: 'ALGO', quote: 'USD', label: 'ALGO / USD', wsSymbol: 'algousdt' },
+  { id: 'SAND/USD', base: 'SAND', quote: 'USD', label: 'SAND / USD', wsSymbol: 'sandusdt' },
+  { id: 'MANA/USD', base: 'MANA', quote: 'USD', label: 'MANA / USD', wsSymbol: 'manausdt' },
+  { id: 'AXS/USD',  base: 'AXS',  quote: 'USD', label: 'AXS / USD',  wsSymbol: 'axsusdt'  },
+  { id: 'EGLD/USD', base: 'EGLD', quote: 'USD', label: 'EGLD / USD', wsSymbol: 'egldusdt' },
+  { id: 'THETA/USD',base: 'THETA',quote: 'USD', label: 'THETA / USD',wsSymbol: 'thetausdt'},
+]
+
+// ── 20 stock tickers (display only — no Binance WS) ──────────────────────────
+export const STOCKS = [
+  { id: 'AAPL',  base: 'AAPL',  quote: 'USD', label: 'Apple',           wsSymbol: null },
+  { id: 'MSFT',  base: 'MSFT',  quote: 'USD', label: 'Microsoft',       wsSymbol: null },
+  { id: 'GOOGL', base: 'GOOGL', quote: 'USD', label: 'Alphabet',        wsSymbol: null },
+  { id: 'AMZN',  base: 'AMZN',  quote: 'USD', label: 'Amazon',          wsSymbol: null },
+  { id: 'NVDA',  base: 'NVDA',  quote: 'USD', label: 'NVIDIA',          wsSymbol: null },
+  { id: 'META',  base: 'META',  quote: 'USD', label: 'Meta',            wsSymbol: null },
+  { id: 'TSLA',  base: 'TSLA',  quote: 'USD', label: 'Tesla',           wsSymbol: null },
+  { id: 'BRK.B', base: 'BRK.B', quote: 'USD', label: 'Berkshire',       wsSymbol: null },
+  { id: 'JPM',   base: 'JPM',   quote: 'USD', label: 'JPMorgan',        wsSymbol: null },
+  { id: 'V',     base: 'V',     quote: 'USD', label: 'Visa',            wsSymbol: null },
+  { id: 'UNH',   base: 'UNH',   quote: 'USD', label: 'UnitedHealth',    wsSymbol: null },
+  { id: 'MA',    base: 'MA',    quote: 'USD', label: 'Mastercard',      wsSymbol: null },
+  { id: 'XOM',   base: 'XOM',   quote: 'USD', label: 'ExxonMobil',      wsSymbol: null },
+  { id: 'JNJ',   base: 'JNJ',   quote: 'USD', label: 'Johnson & Johnson',wsSymbol: null },
+  { id: 'PG',    base: 'PG',    quote: 'USD', label: 'Procter & Gamble', wsSymbol: null },
+  { id: 'HD',    base: 'HD',    quote: 'USD', label: 'Home Depot',      wsSymbol: null },
+  { id: 'BAC',   base: 'BAC',   quote: 'USD', label: 'Bank of America', wsSymbol: null },
+  { id: 'NFLX',  base: 'NFLX',  quote: 'USD', label: 'Netflix',         wsSymbol: null },
+  { id: 'COST',  base: 'COST',  quote: 'USD', label: 'Costco',          wsSymbol: null },
+  { id: 'AMD',   base: 'AMD',   quote: 'USD', label: 'AMD',             wsSymbol: null },
+]
+
+export const DEFAULT_PAIR = PAIRS[0]

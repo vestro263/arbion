@@ -1,0 +1,563 @@
+/* ════════════════════════════════════════════════════════
+   trade.css  —  import after shared.css
+   ════════════════════════════════════════════════════════ */
+
+.trade-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fade-in .35s ease both;
+}
+
+.trade-main {
+  flex: 1;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* ─── stats row ─────────────────────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.stats-row .stat-card:nth-child(1) { animation: slide-up .3s .05s ease both; }
+.stats-row .stat-card:nth-child(2) { animation: slide-up .3s .10s ease both; }
+.stats-row .stat-card:nth-child(3) { animation: slide-up .3s .15s ease both; }
+.stats-row .stat-card:nth-child(4) { animation: slide-up .3s .20s ease both; }
+
+.arrow {
+  font-size: 11px;
+  margin-left: 4px;
+  display: inline-block;
+}
+
+/* ─── connection indicator ───────────────────────────────────────────────────── */
+.conn-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .06em;
+}
+
+.conn-dot {
+  flex-shrink: 0;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text4);
+}
+
+.conn-status.live .conn-dot {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green), 0 0 16px rgba(13,255,170,.3);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.conn-status.live { color: var(--green); }
+.conn-status.off  { color: var(--text3); }
+
+/* ─── resize handle ──────────────────────────────────────────────────────────── */
+.panel-resize-handle {
+  flex-shrink: 0;
+  height: 6px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: background .15s;
+  user-select: none;
+  position: relative;
+  z-index: 10;
+}
+
+.panel-resize-handle::before {
+  content: '';
+  width: 36px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border2);
+  transition: background .2s, width .2s;
+}
+
+.panel-resize-handle:hover::before,
+.panel-resize-handle.dragging::before {
+  background: var(--cyan-border);
+  width: 52px;
+}
+
+/* ─── action panel ───────────────────────────────────────────────────────────── */
+.action-panel-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 80px;
+  max-height: 280px;
+  overflow: hidden;
+}
+
+.action-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1rem 1.5rem;
+  overflow: hidden;
+  flex: 1;
+  transition: border-color .25s, box-shadow .25s;
+}
+
+.action-panel:hover {
+  border-color: var(--border2);
+  box-shadow: 0 0 30px rgba(0,0,0,.4), inset 0 0 30px rgba(0,236,212,.015);
+}
+
+/* corner accents */
+.action-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 44px; height: 44px;
+  border-top: 1px solid var(--cyan-border);
+  border-left: 1px solid var(--cyan-border);
+  border-radius: var(--r-lg) 0 0 0;
+  pointer-events: none;
+}
+
+.action-panel::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 44px; height: 44px;
+  border-bottom: 1px solid var(--cyan-border);
+  border-right: 1px solid var(--cyan-border);
+  border-radius: 0 0 var(--r-lg) 0;
+  pointer-events: none;
+}
+
+/* ─── panel left: pair + price ───────────────────────────────────────────────── */
+.panel-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pair-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.big-price {
+  font-family: var(--font-head);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: .01em;
+  color: var(--text);
+  line-height: 1.1;
+  white-space: nowrap;
+  transition: color .25s, text-shadow .25s;
+}
+.big-price.up         { color: var(--green); text-shadow: var(--green-glow); }
+.big-price.dn         { color: var(--red);   text-shadow: var(--red-glow);   }
+.big-price.placeholder{ color: var(--text4); }
+
+/* ─── panel right: buttons + status ─────────────────────────────────────────── */
+.panel-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+}
+
+/* ─── trade buttons ─────────────────────────────────────────────────────────── */
+.trade-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn-buy,
+.btn-sell {
+  position: relative;
+  padding: 11px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  overflow: hidden;
+  transition: opacity .15s, transform .12s, box-shadow .2s, border-color .2s;
+}
+
+/* shimmer */
+.btn-buy::before,
+.btn-sell::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+  transition: left .35s ease;
+  pointer-events: none;
+}
+.btn-buy:not(:disabled):hover::before,
+.btn-sell:not(:disabled):hover::before { left: 160%; }
+
+.btn-buy:active, .btn-sell:active { transform: scale(.96); transition: transform .08s; }
+.btn-buy:disabled, .btn-sell:disabled { opacity: .25; cursor: not-allowed; }
+
+.btn-buy  { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+.btn-sell { background: var(--red-bg);   color: var(--red);   border-color: var(--red-border);   }
+
+.btn-buy:not(:disabled):hover {
+  background: rgba(13,255,170,.1);
+  border-color: var(--green-dim);
+  box-shadow: 0 0 20px rgba(13,255,170,.18), inset 0 0 10px rgba(13,255,170,.06);
+}
+.btn-sell:not(:disabled):hover {
+  background: rgba(255,45,107,.1);
+  border-color: var(--red-dim);
+  box-shadow: 0 0 20px rgba(255,45,107,.18), inset 0 0 10px rgba(255,45,107,.06);
+}
+
+/* ─── trade status bar ───────────────────────────────────────────────────────── */
+.trade-status-bar {
+  position: relative;
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: var(--r-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-align: center;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg3);
+  color: var(--text3);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: background .25s, color .25s, border-color .25s, box-shadow .25s;
+}
+
+.trade-status-bar::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--text4);
+  transition: background .25s, box-shadow .25s;
+}
+
+.trade-status-bar.open  { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-border); }
+.trade-status-bar.open::before  { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+.trade-status-bar.won   { background: var(--green-bg); color: var(--green); border-color: var(--green-border); box-shadow: 0 0 14px rgba(13,255,170,.1); }
+.trade-status-bar.won::before   { background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+.trade-status-bar.lost  { background: var(--red-bg);   color: var(--red);   border-color: var(--red-border);   box-shadow: 0 0 14px rgba(255,45,107,.1); }
+.trade-status-bar.lost::before  { background: var(--red);   box-shadow: 0 0 8px var(--red);   }
+
+
+/* ─── chart overlay ──────────────────────────────────────────────────────────── */
+.chart-overlay {
+  position: absolute;
+  bottom: 38px;          /* sits above the time scale */
+  left: 12px;
+  right: 60px;           /* clears the price scale */
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  pointer-events: none;  /* overlay doesn't block chart panning */
+  z-index: 10;
+}
+
+/* ─── status chip ────────────────────────────────────────────────────────────── */
+.chart-status {
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .07em;
+  padding: 5px 10px;
+  border-radius: var(--r-xs);
+  background: rgba(7,7,15,.75);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  backdrop-filter: blur(6px);
+  transition: background .25s, color .25s, border-color .25s;
+}
+.chart-status-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--text4);
+  flex-shrink: 0;
+  transition: background .25s, box-shadow .25s;
+}
+.chart-status.open {
+  background: rgba(255,196,61,.08);
+  border-color: var(--amber-border);
+  color: var(--amber);
+}
+.chart-status.open .chart-status-dot {
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+.chart-status.won {
+  background: rgba(13,255,170,.08);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+.chart-status.won  .chart-status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.chart-status.lost {
+  background: rgba(255,45,107,.08);
+  border-color: var(--red-border);
+  color: var(--red);
+}
+.chart-status.lost .chart-status-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+/* ─── buy / sell buttons ─────────────────────────────────────────────────────── */
+.chart-trade-btns {
+  pointer-events: all;   /* re-enable clicks just for buttons */
+  display: flex;
+  gap: 6px;
+}
+
+.chart-btn-buy,
+.chart-btn-sell {
+  padding: 7px 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  border-radius: var(--r-xs);
+  border: 1px solid transparent;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: opacity .15s, transform .1s, box-shadow .2s, background .15s;
+}
+.chart-btn-buy:active,
+.chart-btn-sell:active   { transform: scale(.94); }
+.chart-btn-buy:disabled,
+.chart-btn-sell:disabled { opacity: .28; cursor: not-allowed; }
+
+.chart-btn-buy {
+  background: rgba(13,255,170,.13);
+  color: var(--green);
+  border-color: var(--green-border);
+}
+.chart-btn-buy:not(:disabled):hover {
+  background: rgba(13,255,170,.24);
+  box-shadow: 0 0 18px rgba(13,255,170,.22);
+}
+
+.chart-btn-sell {
+  background: rgba(255,45,107,.13);
+  color: var(--red);
+  border-color: var(--red-border);
+}
+.chart-btn-sell:not(:disabled):hover {
+  background: rgba(255,45,107,.24);
+  box-shadow: 0 0 18px rgba(255,45,107,.22);
+}
+
+
+/* ─── chart wrap — resizable ─────────────────────────────────────────────────── */
+.chart-wrap {
+  position: relative;
+  height: 360px;          /* default starting height */
+  min-height: 180px;
+  max-height: 700px;
+  overflow: hidden;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transition: border-color .25s;
+}
+.chart-wrap:hover { border-color: var(--border2); }
+
+/* corner accents */
+.chart-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 20px; height: 20px;
+  border-top: 1px solid var(--cyan-border);
+  border-left: 1px solid var(--cyan-border);
+  border-radius: var(--r-lg) 0 0 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.chart-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 6px; right: 0;   /* 6px = handle height */
+  width: 20px; height: 20px;
+  border-bottom: 1px solid var(--cyan-border);
+  border-right: 1px solid var(--cyan-border);
+  border-radius: 0 0 var(--r-lg) 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ─── chart canvas fills wrap minus header ───────────────────────────────────── */
+.chart-canvas {
+  width: 100%;
+  height: calc(100% - 44px - 6px);  /* 44px header + 6px handle */
+  display: block;
+}
+
+/* ─── overlay ────────────────────────────────────────────────────────────────── */
+.chart-overlay {
+  position: absolute;
+  bottom: 44px;           /* above timescale (~38px) + handle (6px) */
+  left: 12px;
+  right: 60px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ─── status chip ────────────────────────────────────────────────────────────── */
+.chart-status {
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .07em;
+  padding: 5px 10px;
+  border-radius: var(--r-xs);
+  background: rgba(7,7,15,.75);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  backdrop-filter: blur(6px);
+  transition: background .25s, color .25s, border-color .25s;
+}
+.chart-status-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--text4);
+  flex-shrink: 0;
+  transition: background .25s, box-shadow .25s;
+}
+.chart-status.open {
+  background: rgba(255,196,61,.08);
+  border-color: var(--amber-border);
+  color: var(--amber);
+}
+.chart-status.open .chart-status-dot {
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+.chart-status.won {
+  background: rgba(13,255,170,.08);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+.chart-status.won  .chart-status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.chart-status.lost {
+  background: rgba(255,45,107,.08);
+  border-color: var(--red-border);
+  color: var(--red);
+}
+.chart-status.lost .chart-status-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+/* ─── trade buttons ──────────────────────────────────────────────────────────── */
+.chart-trade-btns {
+  pointer-events: all;
+  display: flex;
+  gap: 6px;
+}
+
+.chart-btn-buy,
+.chart-btn-sell {
+  padding: 7px 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  border-radius: var(--r-xs);
+  border: 1px solid transparent;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: opacity .15s, transform .1s, box-shadow .2s, background .15s;
+}
+.chart-btn-buy:active,
+.chart-btn-sell:active   { transform: scale(.94); }
+.chart-btn-buy:disabled,
+.chart-btn-sell:disabled { opacity: .28; cursor: not-allowed; }
+
+.chart-btn-buy {
+  background: rgba(13,255,170,.13);
+  color: var(--green);
+  border-color: var(--green-border);
+}
+.chart-btn-buy:not(:disabled):hover {
+  background: rgba(13,255,170,.24);
+  box-shadow: 0 0 18px rgba(13,255,170,.22);
+}
+.chart-btn-sell {
+  background: rgba(255,45,107,.13);
+  color: var(--red);
+  border-color: var(--red-border);
+}
+.chart-btn-sell:not(:disabled):hover {
+  background: rgba(255,45,107,.24);
+  box-shadow: 0 0 18px rgba(255,45,107,.22);
+}
+
+/* ─── resize handle ──────────────────────────────────────────────────────────── */
+.chart-resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+.chart-resize-handle::before {
+  content: '';
+  width: 40px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border2);
+  transition: background .2s, width .2s;
+}
+.chart-resize-handle:hover::before,
+.chart-resize-handle.dragging::before {
+  background: var(--cyan-border);
+  width: 60px;
+}
