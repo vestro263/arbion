@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 app.use(express.json())
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
-// ── auth middleware ───────────────────────────────────────────────────────────
+// ── auth ──────────────────────────────────────────────────────────────────────
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token
   if (!token) return next(new Error('No token'))
@@ -44,48 +44,28 @@ io.use((socket, next) => {
   }
 })
 
-// ── price state ───────────────────────────────────────────────────────────────
-const latestPrices = {}  // { 'btcusdt': 94000.12 }
+// ── price cache — server only needs this for trade entry/exit prices ──────────
+const latestPrices = {}
 
-// Start BTC feed by default so first user gets price immediately
-ensureFeed('btcusdt', (price) => {
-  latestPrices['btcusdt'] = price
-  io.to('btcusdt').emit('price', { symbol: 'BTCUSDT', price: price.toFixed(2) })
-})
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-// Move a socket from its current symbol room into a new one
-// and ensure the feed for that symbol is running
-function joinSymbol(socket, wsSymbol) {
+// Keep feeds running for all active symbols so latestPrices stays fresh
+function trackSymbol(wsSymbol) {
   const key = wsSymbol.toLowerCase()
-
-  // leave every room except the socket's own room
-  socket.rooms.forEach(room => {
-    if (room !== socket.id) socket.leave(room)
-  })
-
-  // join the new symbol room
-  socket.join(key)
-
-  // ensure feed is running — update callback to broadcast to room
   ensureFeed(key, (price) => {
     latestPrices[key] = price
-    io.to(key).emit('price', { symbol: key.toUpperCase(), price: price.toFixed(2) })
   })
-
-  console.log(`${socket.user.id} → ${key}`)
 }
+
+// Always track BTC by default
+trackSymbol('btcusdt')
 
 // ── connection ────────────────────────────────────────────────────────────────
 io.on('connection', async (socket) => {
   const userId = socket.user.id
   console.log('connected:', userId)
 
-  // Default: join BTC room
-  joinSymbol(socket, 'btcusdt')
+  // track which symbol this socket is trading on
+  socket.activeSymbol = 'btcusdt'
 
-  // Restore open trades on reconnect
   try {
     const open = (await getUserTrades(userId)).filter(t => t.status === 'open')
     if (open.length) socket.emit('open_trades', open)
@@ -93,25 +73,18 @@ io.on('connection', async (socket) => {
     console.error('getUserTrades error:', err.message)
   }
 
-  // ── switch_symbol ─────────────────────────────────────────────────────────
-  // Client calls this when user clicks a different pair in the watchlist
+  // client tells server which pair they switched to
+  // server just needs to ensure it's tracking that price
   socket.on('switch_symbol', ({ symbol }) => {
-    if (!symbol) return
-    joinSymbol(socket, symbol)
-    // Immediately send latest known price for this symbol if we have it
-    const key   = symbol.toLowerCase()
-    const price = latestPrices[key]
-    if (price) {
-      socket.emit('price', { symbol: key.toUpperCase(), price: price.toFixed(2) })
-    }
-    socket.emit('symbol_switched', { symbol: key.toUpperCase() })
+    const key = symbol.toLowerCase()
+    socket.activeSymbol = key
+    trackSymbol(key)  // ensure feed running for trade execution
   })
 
-  // ── place_order ───────────────────────────────────────────────────────────
-  socket.on('place_order', async ({ symbol = 'btcusdt', side, size = 1 }) => {
-    const key   = symbol.toLowerCase()
+  socket.on('place_order', async ({ symbol, side, size = 1 }) => {
+    const key   = (symbol || socket.activeSymbol).toLowerCase()
     const price = latestPrices[key]
-    if (!price) return socket.emit('error', { msg: `No price yet for ${symbol}` })
+    if (!price) return socket.emit('error', { msg: `No price yet for ${key}` })
 
     try {
       const trades   = await getUserTrades(userId)
@@ -134,7 +107,6 @@ io.on('connection', async (socket) => {
     }
   })
 
-  // ── close_trade ───────────────────────────────────────────────────────────
   socket.on('close_trade', async ({ tradeId }) => {
     try {
       const trades = await getUserTrades(userId)
@@ -166,7 +138,6 @@ io.on('connection', async (socket) => {
   socket.on('disconnect', () => console.log('disconnected:', userId))
 })
 
-// ── start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000
 
 server.listen(PORT, () => {
