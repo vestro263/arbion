@@ -24,6 +24,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'https://arbion-jpg.onrender.com',
+'arbion-jpg.onrender.com',
 ]
 
 # replace CORS_ALLOW_ALL_ORIGINS = True with specific origins in production
