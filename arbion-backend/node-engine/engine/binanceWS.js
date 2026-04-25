@@ -1,25 +1,16 @@
 const WebSocket = require('ws')
 
-// Global feeds — one per symbol, shared across all users
-// { 'btcusdt': { ws, reconnectTimeout, stopped, subscribers } }
 const feeds = {}
 
-/**
- * Ensure a feed is running for this symbol.
- * Returns immediately if already active.
- * @param {string} symbol - e.g. 'btcusdt'
- * @param {(price: number) => void} onPrice - called on every tick
- */
 function ensureFeed(symbol, onPrice) {
   const key = symbol.toLowerCase()
 
   if (feeds[key]) {
-    // feed already running — just update the callback
     feeds[key].onPrice = onPrice
     return
   }
 
-  const url = `wss://fstream.binance.com/ws/${key}@trade`
+  const url  = `wss://stream.binance.com:9443/ws/${key}@trade`  // ✅ spot
   const feed = { ws: null, reconnectTimeout: null, stopped: false, onPrice }
   feeds[key] = feed
 
@@ -35,7 +26,8 @@ function ensureFeed(symbol, onPrice) {
       try {
         const data  = JSON.parse(raw.toString())
         const price = parseFloat(data.p)
-        if (Number.isFinite(price)) feed.onPrice(price)
+        if (!Number.isFinite(price) || price <= 0) return  // ✅ guard bad data
+        feed.onPrice(price)
       } catch (err) {
         console.error(`❌ WS parse error (${key}):`, err.message)
       }
@@ -56,7 +48,7 @@ function ensureFeed(symbol, onPrice) {
 }
 
 function stopFeed(symbol) {
-  const key = symbol.toLowerCase()
+  const key  = symbol.toLowerCase()
   const feed = feeds[key]
   if (!feed) return
   feed.stopped = true
