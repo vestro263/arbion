@@ -9,11 +9,12 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 🔐 SECURITY
-SECRET_KEY = "supersecret123"
+SECRET_KEY = "b1e982220f0465a229c04294ac75a9eef9da7d16663cc7f719c920cf47aa55e3"
+
 
 SIMPLE_JWT = {
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": "supersecret123",  # 👈 FORCE SAME VALUE
+    "SIGNING_KEY": "b1e982220f0465a229c04294ac75a9eef9da7d16663cc7f719c920cf47aa55e3",  # 👈 FORCE SAME VALUE
 }
 
 DEBUG = True
