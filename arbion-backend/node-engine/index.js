@@ -31,7 +31,6 @@ app.use((req, res, next) => {
 app.use(express.json())
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
-// ── auth ──────────────────────────────────────────────────────────────────────
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token
   if (!token) return next(new Error('No token'))
@@ -44,7 +43,6 @@ io.use((socket, next) => {
   }
 })
 
-// ── price cache ───────────────────────────────────────────────────────────────
 const latestPrices = {}
 const activeFeeds  = new Set()
 
@@ -54,18 +52,15 @@ function trackSymbol(wsSymbol) {
   activeFeeds.add(key)
   startBinanceFeed(key, (price) => {
     latestPrices[key] = price
-    checkSLTP(key, price)   // ← check every price tick
+    checkSLTP(key, price)
   })
 }
 
 trackSymbol('btcusdt')
 
-// ── SL/TP enforcement ─────────────────────────────────────────────────────────
-// map userId → socket for fast lookup
 const userSockets = {}
 
 async function checkSLTP(symbol, price) {
-  // find all sockets trading this symbol
   for (const [userId, socket] of Object.entries(userSockets)) {
     try {
       const trades = await getUserTrades(userId)
@@ -75,16 +70,11 @@ async function checkSLTP(symbol, price) {
         (t.sl !== null || t.tp !== null)
       )
       if (!open) continue
-
       const hit = shouldClose(open, price)
       if (!hit) continue
-
-      // auto-close
       const result = await closeTrade(userId, open.id, price)
       if (!result) continue
-
       console.log(`SL/TP hit — ${userId} trade ${open.id} closed at ${price} (${hit})`)
-
       socket.emit('trade_result', {
         tradeId:    result.id,
         entryPrice: result.entryPrice,
@@ -92,7 +82,7 @@ async function checkSLTP(symbol, price) {
         pnl:        result.pnl,
         side:       result.side,
         size:       result.size,
-        closedBy:   hit,   // 'sl' | 'tp'
+        closedBy:   hit,
       })
     } catch (err) {
       console.error('checkSLTP error:', err.message)
@@ -102,35 +92,29 @@ async function checkSLTP(symbol, price) {
 
 function shouldClose(trade, price) {
   const { side, sl, tp } = trade
-
   if (side === 'buy') {
     if (sl !== null && price <= sl) return 'sl'
     if (tp !== null && price >= tp) return 'tp'
   }
-
   if (side === 'sell') {
     if (sl !== null && price >= sl) return 'sl'
     if (tp !== null && price <= tp) return 'tp'
   }
-
   return null
 }
 
-// ── connection ────────────────────────────────────────────────────────────────
 io.on('connection', async (socket) => {
   const userId = socket.user.id
   console.log('connected:', userId)
 
-  userSockets[userId] = socket   // register for SL/TP checks
+  userSockets[userId] = socket
   socket.activeSymbol = 'btcusdt'
 
   try {
     const open = (await getUserTrades(userId)).filter(t => t.status === 'open')
     if (open.length) {
-      const t = open[0]
       socket.emit('open_trades', open)
-      // ensure symbol is being tracked for SL/TP
-      trackSymbol(t.symbol)
+      trackSymbol(open[0].symbol)
     }
   } catch (err) {
     console.error('getUserTrades error:', err.message)
@@ -143,11 +127,12 @@ io.on('connection', async (socket) => {
   })
 
   socket.on('place_order', async ({ symbol, side, size = 1, price: clientPrice, sl, tp }) => {
+    console.log('[PLACE_ORDER]', { symbol, side, size, clientPrice, sl, tp })
     const key   = (symbol || socket.activeSymbol).toLowerCase()
     const price = latestPrices[key] || clientPrice
+    console.log('[PRICE]', key, price, 'cached:', latestPrices[key])
     if (!price) return socket.emit('error', { msg: `No price yet for ${key}` })
 
-    // validate SL/TP make sense
     if (sl !== null && tp !== null) {
       if (side === 'buy'  && sl >= price) return socket.emit('error', { msg: 'SL must be below entry for buy'  })
       if (side === 'buy'  && tp <= price) return socket.emit('error', { msg: 'TP must be above entry for buy'  })
@@ -157,22 +142,16 @@ io.on('connection', async (socket) => {
 
     try {
       const trades   = await getUserTrades(userId)
+      console.log('[EXISTING TRADES]', trades)
       const existing = trades.find(t => t.status === 'open')
       if (existing) return socket.emit('error', { msg: 'Trade already open' })
 
       const trade = await createTrade({
-        userId,
-        symbol: key,
-        side,
-        size,
-        entryPrice: price,
-        sl:  sl  ?? null,
-        tp:  tp  ?? null,
+        userId, symbol: key, side, size,
+        entryPrice: price, sl: sl ?? null, tp: tp ?? null,
       })
+      console.log('[TRADE CREATED]', trade)
 
-      console.log('trade opened:', trade)
-
-      // ensure price feed running for this symbol
       trackSymbol(key)
 
       socket.emit('trade_started', {
@@ -184,16 +163,17 @@ io.on('connection', async (socket) => {
         sl:         trade.sl,
         tp:         trade.tp,
       })
+
       await djangoPost('open/', {
-          tradeId:    trade.id,
-          userId:     userId,
-          symbol:     trade.symbol,
-          side:       trade.side,
-          size:       trade.size,
-          entryPrice: trade.entryPrice,
-          sl:         trade.sl,
-          tp:         trade.tp,
-        })
+        tradeId:    trade.id,
+        userId:     userId,
+        symbol:     trade.symbol,
+        side:       trade.side,
+        size:       trade.size,
+        entryPrice: trade.entryPrice,
+        sl:         trade.sl,
+        tp:         trade.tp,
+      })
     } catch (err) {
       console.error('place_order error:', err.message)
       socket.emit('error', { msg: 'Failed to place order' })
@@ -223,12 +203,13 @@ io.on('connection', async (socket) => {
         size:       result.size,
         closedBy:   'manual',
       })
+
       await djangoPost('close/', {
-          tradeId:   result.id,
-          exitPrice: result.exitPrice,
-          pnl:       result.pnl,
-          closedBy:  result.closedBy || 'manual',
-        })
+        tradeId:   result.id,
+        exitPrice: result.exitPrice,
+        pnl:       result.pnl,
+        closedBy:  result.closedBy || 'manual',
+      })
     } catch (err) {
       console.error('close_trade error:', err.message)
       socket.emit('error', { msg: 'Failed to close trade' })
@@ -236,13 +217,13 @@ io.on('connection', async (socket) => {
   })
 
   socket.on('disconnect', () => {
-    delete userSockets[userId]   // clean up
+    delete userSockets[userId]
     console.log('disconnected:', userId)
   })
 })
 
-const DJANGO_URL    = process.env.DJANGO_URL    || 'http://localhost:8000'
-const NODE_SECRET   = process.env.JWT_SECRET   || 'node_internal_secret'
+const DJANGO_URL  = process.env.DJANGO_URL  || 'http://localhost:8000'
+const NODE_SECRET = process.env.JWT_SECRET  || 'node_internal_secret'
 
 async function djangoPost(path, body) {
   try {
@@ -258,33 +239,8 @@ async function djangoPost(path, body) {
     console.error(`Django POST ${path} failed:`, err.message)
   }
 }
+
 const PORT = process.env.PORT || 4000
-
-socket.on('place_order', async ({ symbol, side, size = 1, price: clientPrice, sl, tp }) => {
-  console.log('[PLACE_ORDER]', { symbol, side, size, clientPrice, sl, tp })  // ← add
-  const key   = (symbol || socket.activeSymbol).toLowerCase()
-  const price = latestPrices[key] || clientPrice
-  console.log('[PRICE]', key, price, latestPrices[key])  // ← add
-  if (!price) return socket.emit('error', { msg: `No price yet for ${key}` })
-
-  if (sl !== null && tp !== null) {
-    if (side === 'buy'  && sl >= price) return socket.emit('error', { msg: 'SL must be below entry for buy'  })
-    if (side === 'buy'  && tp <= price) return socket.emit('error', { msg: 'TP must be above entry for buy'  })
-    if (side === 'sell' && sl <= price) return socket.emit('error', { msg: 'SL must be above entry for sell' })
-    if (side === 'sell' && tp >= price) return socket.emit('error', { msg: 'TP must be below entry for sell' })
-  }
-
-  try {
-    const trades   = await getUserTrades(userId)
-    console.log('[EXISTING TRADES]', trades)  // ← add
-    const existing = trades.find(t => t.status === 'open')
-    if (existing) return socket.emit('error', { msg: 'Trade already open' })
-
-    const trade = await createTrade({
-      userId, symbol: key, side, size,
-      entryPrice: price, sl: sl ?? null, tp: tp ?? null,
-    })
-    console.log('[TRADE CREATED]', trade)  // ← add
 
 server.listen(PORT, () => {
   console.log(`Node engine → http://0.0.0.0:${PORT}`)
