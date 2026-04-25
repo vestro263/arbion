@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "lightweight-charts": "^5.2.0",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-router-dom": "^7.14.2",
     "socket.io-client": "^4.8.3"
   },
