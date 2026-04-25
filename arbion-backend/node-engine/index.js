@@ -260,6 +260,32 @@ async function djangoPost(path, body) {
 }
 const PORT = process.env.PORT || 4000
 
+socket.on('place_order', async ({ symbol, side, size = 1, price: clientPrice, sl, tp }) => {
+  console.log('[PLACE_ORDER]', { symbol, side, size, clientPrice, sl, tp })  // ← add
+  const key   = (symbol || socket.activeSymbol).toLowerCase()
+  const price = latestPrices[key] || clientPrice
+  console.log('[PRICE]', key, price, latestPrices[key])  // ← add
+  if (!price) return socket.emit('error', { msg: `No price yet for ${key}` })
+
+  if (sl !== null && tp !== null) {
+    if (side === 'buy'  && sl >= price) return socket.emit('error', { msg: 'SL must be below entry for buy'  })
+    if (side === 'buy'  && tp <= price) return socket.emit('error', { msg: 'TP must be above entry for buy'  })
+    if (side === 'sell' && sl <= price) return socket.emit('error', { msg: 'SL must be above entry for sell' })
+    if (side === 'sell' && tp >= price) return socket.emit('error', { msg: 'TP must be below entry for sell' })
+  }
+
+  try {
+    const trades   = await getUserTrades(userId)
+    console.log('[EXISTING TRADES]', trades)  // ← add
+    const existing = trades.find(t => t.status === 'open')
+    if (existing) return socket.emit('error', { msg: 'Trade already open' })
+
+    const trade = await createTrade({
+      userId, symbol: key, side, size,
+      entryPrice: price, sl: sl ?? null, tp: tp ?? null,
+    })
+    console.log('[TRADE CREATED]', trade)  // ← add
+
 server.listen(PORT, () => {
   console.log(`Node engine → http://0.0.0.0:${PORT}`)
   const SELF = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`
