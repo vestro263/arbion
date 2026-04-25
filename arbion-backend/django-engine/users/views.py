@@ -78,3 +78,38 @@ def google_auth(request):
             'avatar':   user.avatar,
         }
     })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def signup(request):
+    username = request.data.get('username', '').strip()
+    email    = request.data.get('email',    '').strip()
+    password = request.data.get('password', '').strip()
+
+    if not username or not password:
+        return Response({'error': 'Username and password required'}, status=400)
+
+    if User.objects.filter(username=username).exists():
+        return Response({'error': 'Username already taken'}, status=400)
+
+    if email and User.objects.filter(email=email).exists():
+        return Response({'error': 'Email already registered'}, status=400)
+
+    user = User.objects.create_user(
+        username=username,
+        email=email,
+        password=password,
+    )
+    ensure_wallet(user)
+    tokens = get_tokens(user)
+
+    return Response({
+        'access':  tokens['access'],
+        'refresh': tokens['refresh'],
+        'user': {
+            'id':       user.id,
+            'username': user.username,
+            'email':    user.email,
+        }
+    }, status=201)
