@@ -6,7 +6,7 @@ const WebSocket = require('ws')
  * @param {(price: number) => void} onPrice - callback for price updates
  */
 function startBinanceFeed(symbol, onPrice) {
-  const url = `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@trade`
+  const url = `wss://fstream.binance.com/ws/btcusdt@trade`
 
   let ws
   let reconnectTimeout
