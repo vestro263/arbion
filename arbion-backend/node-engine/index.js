@@ -9,7 +9,16 @@ const { createTrade, closeTrade, getUserTrades } = require('./engine/tradeStore'
 
 const app    = express()
 const server = http.createServer(app)
-const io     = new Server(server, { cors: { origin: '*' } })
+
+const io = new Server(server, {
+  cors: { origin: '*' },
+  transports: ['websocket', 'polling'],   // WS first, polling as fallback
+})
+
+// ── basic HTTP routes ─────────────────────────────────────────────────────────
+app.use(express.json())
+
+app.get('/health', (_req, res) => res.json({ ok: true }))
 
 // ── auth middleware ───────────────────────────────────────────────────────────
 io.use((socket, next) => {
@@ -19,12 +28,12 @@ io.use((socket, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] })
     socket.user = { id: String(decoded.user_id) }
     next()
-  } catch (err) {
+  } catch {
     next(new Error('Unauthorized'))
   }
 })
 
-// ── price state (shared across all sockets) ───────────────────────────────────
+// ── price state ───────────────────────────────────────────────────────────────
 let latestPrice = null
 
 startBinanceFeed('btcusdt', (price) => {
@@ -48,15 +57,7 @@ io.on('connection', (socket) => {
     const existing = getUserTrades(userId).find(t => t.status === 'open')
     if (existing) return socket.emit('error', { msg: 'Trade already open' })
 
-    // Day 4 trade model
-    const trade = createTrade({
-      userId,
-      symbol,
-      side,          // 'buy' | 'sell'
-      size,
-      entryPrice: latestPrice,
-    })
-
+    const trade = createTrade({ userId, symbol, side, size, entryPrice: latestPrice })
     console.log('trade opened:', trade)
 
     socket.emit('trade_started', {
@@ -87,13 +88,12 @@ io.on('connection', (socket) => {
     })
   })
 
-  socket.on('disconnect', () => {
-    console.log('disconnected:', userId)
-  })
+  socket.on('disconnect', () => console.log('disconnected:', userId))
 })
 
+// ── start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000
 
 server.listen(PORT, () => {
-  console.log(`Node engine → http://localhost:${PORT}`)
+  console.log(`Node engine → http://0.0.0.0:${PORT}`)   // ← 0.0.0.0, not localhost
 })
