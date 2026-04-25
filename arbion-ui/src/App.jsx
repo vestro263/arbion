@@ -16,7 +16,7 @@ import { PAIRS, DEFAULT_PAIR } from './constants/pairs'
 import './App.css'
 
 export default function App() {
-const { jwt, username, login, loginWithToken, logout } = useAuth()
+  const { jwt, username, login, loginWithToken, logout } = useAuth()
   const {
     connect, disconnect, placeOrder, closeTrade, switchSymbol,
     connected, inTrade, tradeStatus, trades, totalPnl,
@@ -25,10 +25,8 @@ const { jwt, username, login, loginWithToken, logout } = useAuth()
   const [activePair,      setActivePair]      = useState(DEFAULT_PAIR)
   const [watchlistPrices, setWatchlistPrices] = useState({})
 
-  // ── live price for active pair — direct browser→Binance ──────────────────
   const { price, priceDir } = usePriceFeed(activePair?.wsSymbol)
 
-  // ── watchlist feeds — direct browser→Binance ─────────────────────────────
   useEffect(() => {
     let alive = true
     const sockets = {}
@@ -64,14 +62,20 @@ const { jwt, username, login, loginWithToken, logout } = useAuth()
 
   const handlePairChange = (pair) => {
     setActivePair(pair)
-    switchSymbol(pair.wsSymbol)  // tell server for trade execution
+    switchSymbol(pair.wsSymbol)
   }
 
+  const handleLogin = async (user, pass) => {
+    const token = await login(user, pass)
+    connect(token)
+  }
 
-const handleLogin = async (user, pass) => {
-  const token = await login(user, pass)
-  connect(token)
-}
+  // Called by Login.jsx after successful Google One Tap
+  const handleGoogleLogin = (accessToken) => {
+    loginWithToken(accessToken)
+    connect(accessToken)
+  }
+
   const handleLogout = () => {
     disconnect()
     logout()
@@ -104,7 +108,15 @@ const handleLogin = async (user, pass) => {
     <BrowserRouter>
       {jwt && <Nav username={username} onLogout={handleLogout} />}
       <Routes>
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        <Route
+          path="/login"
+          element={
+            <Login
+              onLogin={handleLogin}
+              onGoogleLogin={handleGoogleLogin}
+            />
+          }
+        />
         <Route path="/trade" element={
           <ProtectedRoute jwt={jwt}>{tradePage}</ProtectedRoute>
         } />
