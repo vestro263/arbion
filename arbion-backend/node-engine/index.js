@@ -4,7 +4,7 @@ const { Server } = require('socket.io')
 const jwt        = require('jsonwebtoken')
 require('dotenv').config()
 
-const { ensureFeed }                             = require('./engine/binanceWS')
+const { startBinanceFeed }                       = require('./engine/binanceWS')
 const { createTrade, closeTrade, getUserTrades } = require('./engine/tradeStore')
 
 const app    = express()
@@ -44,18 +44,20 @@ io.use((socket, next) => {
   }
 })
 
-// ── price cache — server only needs this for trade entry/exit prices ──────────
+// ── price cache ───────────────────────────────────────────────────────────────
 const latestPrices = {}
+const activeFeeds  = new Set()
 
-// Keep feeds running for all active symbols so latestPrices stays fresh
 function trackSymbol(wsSymbol) {
   const key = wsSymbol.toLowerCase()
-  ensureFeed(key, (price) => {
+  if (activeFeeds.has(key)) return   // already running
+  activeFeeds.add(key)
+  startBinanceFeed(key, (price) => {
     latestPrices[key] = price
   })
 }
 
-// Always track BTC by default
+// always track BTC by default
 trackSymbol('btcusdt')
 
 // ── connection ────────────────────────────────────────────────────────────────
@@ -63,7 +65,6 @@ io.on('connection', async (socket) => {
   const userId = socket.user.id
   console.log('connected:', userId)
 
-  // track which symbol this socket is trading on
   socket.activeSymbol = 'btcusdt'
 
   try {
@@ -73,12 +74,10 @@ io.on('connection', async (socket) => {
     console.error('getUserTrades error:', err.message)
   }
 
-  // client tells server which pair they switched to
-  // server just needs to ensure it's tracking that price
   socket.on('switch_symbol', ({ symbol }) => {
     const key = symbol.toLowerCase()
     socket.activeSymbol = key
-    trackSymbol(key)  // ensure feed running for trade execution
+    trackSymbol(key)
   })
 
   socket.on('place_order', async ({ symbol, side, size = 1 }) => {
