@@ -584,3 +584,42 @@ body {
   grid-template-columns: 1fr 1fr;
   gap:                   10px;
 }
+
+/* ─── Trade page: stack action panel on narrow screens ─── */
+@media (max-width: 700px) {
+  .action-panel {
+    flex-direction: column;
+    padding: 1.25rem;
+  }
+  .panel-right {
+    min-width: 0;
+    width: 100%;
+  }
+  .big-price {
+    font-size: 36px;
+  }
+}
+
+/* ─── Stats: 2-col on mobile ─── */
+@media (max-width: 540px) {
+  .stats-row,
+  .port-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ─── Portfolio: scrollable table on mobile ─── */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 540px) {
+  .table-scroll {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .history-table {
+    min-width: 500px;
+  }
+}
