@@ -8,3 +8,4 @@ djangorestframework-simplejwt
 whitenoise
 psycopg2-binary
 requests
+dj-database-url
