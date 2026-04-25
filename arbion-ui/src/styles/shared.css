@@ -759,6 +759,72 @@ button { font-family: inherit; }
 }
 .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
 
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.account-toggle {
+  display: flex;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.acc-btn {
+  padding: 4px 14px;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.acc-btn.active {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.acc-btn:first-child.active { background: rgba(234,179,8,0.15); color: #eab308; }
+.acc-btn:last-child.active  { background: rgba(34,197,94,0.15);  color: #22c55e; }
+
+.nav-balance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-balance-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+}
+
+.nav-balance-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-reset {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  transition: color 0.2s;
+}
+.nav-reset:hover { color: #eab308; }
+
+@media (max-width: 768px) {
+  .nav-center { display: none; }
+}
 /* ─── keyframes ─────────────────────────────────────────────────────────────── */
 @keyframes nav-scan {
   0%   { left: -60%; }

@@ -16,7 +16,11 @@ import { PAIRS, DEFAULT_PAIR } from './constants/pairs'
 import './App.css'
 
 export default function App() {
-  const { jwt, username, login, loginWithToken, logout } = useAuth()
+  const {
+    jwt, username, activeAccount, demoBalance, realBalance,
+    login, loginWithToken, switchAccount, resetDemo, logout,
+  } = useAuth()
+
   const {
     connect, disconnect, placeOrder, closeTrade, switchSymbol,
     connected, inTrade, tradeStatus, trades, totalPnl,
@@ -70,9 +74,8 @@ export default function App() {
     connect(token)
   }
 
-  // Called by Login.jsx after successful Google One Tap
-  const handleGoogleLogin = (accessToken) => {
-    loginWithToken(accessToken)
+  const handleGoogleLogin = async (accessToken, userData = null) => {
+    await loginWithToken(accessToken, userData)
     connect(accessToken)
   }
 
@@ -96,8 +99,8 @@ export default function App() {
         tradeStatus={tradeStatus}
         totalPnl={totalPnl}
         tradeCount={trades.length}
-        onBuy={() => placeOrder('buy')}
-        onSell={() => placeOrder('sell')}
+        onBuy={(side, p, params) => placeOrder('buy', p, params)}
+        onSell={(side, p, params) => placeOrder('sell', p, params)}
         onClose={closeTrade}
         activePair={activePair}
       />
@@ -106,7 +109,17 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      {jwt && <Nav username={username} onLogout={handleLogout} />}
+      {jwt && (
+        <Nav
+          username={username}
+          onLogout={handleLogout}
+          activeAccount={activeAccount}
+          demoBalance={demoBalance}
+          realBalance={realBalance}
+          onSwitchAccount={switchAccount}
+          onResetDemo={resetDemo}
+        />
+      )}
       <Routes>
         <Route
           path="/login"

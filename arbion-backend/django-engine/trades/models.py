@@ -5,16 +5,16 @@ class Trade(models.Model):
     SIDE_CHOICES    = [('buy', 'Buy'), ('sell', 'Sell')]
     STATUS_CHOICES  = [('open', 'Open'), ('closed', 'Closed')]
     CLOSED_BY       = [('manual', 'Manual'), ('sl', 'Stop Loss'), ('tp', 'Take Profit')]
+    ACCOUNT_TYPES   = [('demo', 'Demo'), ('real', 'Real')]
 
-    # identity
-    node_id     = models.CharField(max_length=64, unique=True)  # UUID from Node
-    user        = models.ForeignKey(
-                    settings.AUTH_USER_MODEL,
-                    on_delete=models.CASCADE,
-                    related_name='trades'
-                  )
+    node_id      = models.CharField(max_length=64, unique=True)
+    user         = models.ForeignKey(
+                     settings.AUTH_USER_MODEL,
+                     on_delete=models.CASCADE,
+                     related_name='trades'
+                   )
+    account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPES, default='demo')  # ← new
 
-    # trade details
     symbol      = models.CharField(max_length=20)
     side        = models.CharField(max_length=4,  choices=SIDE_CHOICES)
     size        = models.DecimalField(max_digits=20, decimal_places=4)
@@ -24,11 +24,9 @@ class Trade(models.Model):
     tp          = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
     pnl         = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
 
-    # state
     status      = models.CharField(max_length=10, choices=STATUS_CHOICES, default='open')
-    closed_by   = models.CharField(max_length=10, choices=CLOSED_BY,      null=True, blank=True)
+    closed_by   = models.CharField(max_length=10, choices=CLOSED_BY, null=True, blank=True)
 
-    # timestamps
     opened_at   = models.DateTimeField(auto_now_add=True)
     closed_at   = models.DateTimeField(null=True, blank=True)
 
@@ -36,4 +34,4 @@ class Trade(models.Model):
         ordering = ['-opened_at']
 
     def __str__(self):
-        return f"{self.user.username} {self.side} {self.symbol} @ {self.entry_price}"
+        return f"{self.user.username} [{self.account_type}] {self.side} {self.symbol} @ {self.entry_price}"
