@@ -18,7 +18,7 @@ SIMPLE_JWT = {
     "SIGNING_KEY": "b1e982220f0465a229c04294ac75a9eef9da7d16663cc7f719c920cf47aa55e3",  # 👈 FORCE SAME VALUE
 }
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     'localhost',
