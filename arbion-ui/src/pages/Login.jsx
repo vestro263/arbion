@@ -16,12 +16,13 @@ export default function Login({ onLogin, onGoogleLogin }) {
       setLoading(true)
       setErr('')
       try {
-        const res = await fetch(`${API_URL}/api/google-auth/`, {
+        const res = await fetch(`${API_URL}/api/auth/google/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ access_token: tokenResponse.access_token }),
         })
-        const data = await res.json()
+        const text = await res.text()
+        const data = JSON.parse(text)
         if (!res.ok) { setErr(data.error || 'Google sign-in failed'); return }
 
         localStorage.setItem('access',  data.access)
