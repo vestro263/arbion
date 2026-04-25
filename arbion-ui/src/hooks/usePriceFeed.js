@@ -1,33 +1,32 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
 export function usePriceFeed(wsSymbol) {
-  const wsRef       = useRef(null)
-  const prevPrice   = useRef(null)
-  const activeKey   = useRef(null)
+  const wsRef     = useRef(null)
+  const prevPrice = useRef(null)
+  const activeKey = useRef(null)
 
   const [price,    setPrice]    = useState(null)
   const [priceDir, setPriceDir] = useState('')
 
   const connect = useCallback((key) => {
-    // close existing connection
     if (wsRef.current) {
-      wsRef.current.onclose = null  // prevent reconnect loop
+      wsRef.current.onclose = null
       wsRef.current.close()
       wsRef.current = null
     }
-
     prevPrice.current = null
     setPrice(null)
     setPriceDir('')
-
-    const url = `wss://stream.binance.com:9443/ws/${key.toLowerCase()}@trade`
-    const ws  = new WebSocket(url)
     activeKey.current = key
 
-    ws.onmessage = (e) => {
+    // ── miniTicker: one update per second, close price ────────────────────
+    const url = `wss://stream.binance.com:9443/ws/${key.toLowerCase()}@miniTicker`
+    const ws  = new WebSocket(url)
+
+    ws.onmessage = e => {
       try {
-        const data  = JSON.parse(e.data)
-        const cur   = parseFloat(data.p)
+        const data = JSON.parse(e.data)
+        const cur  = parseFloat(data.c)   // 'c' = close price for this second
         if (!isFinite(cur) || cur <= 0) return
         setPriceDir(prevPrice.current === null ? '' : cur > prevPrice.current ? 'up' : 'dn')
         prevPrice.current = cur
@@ -36,22 +35,17 @@ export function usePriceFeed(wsSymbol) {
     }
 
     ws.onclose = () => {
-      // reconnect only if this symbol is still active
-      if (activeKey.current === key) {
-        setTimeout(() => connect(key), 2000)
-      }
+      if (activeKey.current === key) setTimeout(() => connect(key), 2000)
     }
-
     ws.onerror = () => ws.close()
-
     wsRef.current = ws
   }, [])
 
   useEffect(() => {
     if (wsSymbol) connect(wsSymbol)
     return () => {
+      activeKey.current = null
       if (wsRef.current) {
-        activeKey.current = null
         wsRef.current.onclose = null
         wsRef.current.close()
         wsRef.current = null

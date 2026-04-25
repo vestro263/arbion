@@ -1,60 +1,27 @@
 const WebSocket = require('ws')
 
-const feeds = {}
-
-function ensureFeed(symbol, onPrice) {
-  const key = symbol.toLowerCase()
-
-  if (feeds[key]) {
-    feeds[key].onPrice = onPrice
-    return
-  }
-
-  const url  = `wss://stream.binance.com:9443/ws/${key}@trade`  // ✅ spot
-  const feed = { ws: null, reconnectTimeout: null, stopped: false, onPrice }
-  feeds[key] = feed
+function startBinanceFeed(symbol, onPrice) {
+  const url = `wss://stream.binance.com:9443/ws/${symbol}@miniTicker`
 
   function connect() {
-    console.log(`Connecting to Binance WS: ${key}`)
-    feed.ws = new WebSocket(url)
+    const ws = new WebSocket(url)
 
-    feed.ws.on('open', () =>
-      console.log(`✅ Binance WS connected: ${key}`)
-    )
-
-    feed.ws.on('message', (raw) => {
+    ws.on('open',    () => console.log(`Binance feed: ${symbol}@miniTicker`))
+    ws.on('message', raw => {
       try {
-        const data  = JSON.parse(raw.toString())
-        const price = parseFloat(data.p)
-        if (!Number.isFinite(price) || price <= 0) return  // ✅ guard bad data
-        feed.onPrice(price)
-      } catch (err) {
-        console.error(`❌ WS parse error (${key}):`, err.message)
-      }
+        const data  = JSON.parse(raw)
+        const price = parseFloat(data.c)   // close price
+        if (!isNaN(price) && price > 0) onPrice(price)
+      } catch {}
     })
-
-    feed.ws.on('close', () => {
-      if (feed.stopped) return
-      console.log(`⚠️ Binance WS closed (${key}) — reconnecting in 2s`)
-      feed.reconnectTimeout = setTimeout(connect, 2000)
+    ws.on('close', () => {
+      console.log('Binance WS closed — reconnecting in 2s')
+      setTimeout(connect, 2000)
     })
-
-    feed.ws.on('error', (err) =>
-      console.error(`❌ Binance WS error (${key}):`, err.message)
-    )
+    ws.on('error', e => console.error('Binance WS error:', e.message))
   }
 
   connect()
 }
 
-function stopFeed(symbol) {
-  const key  = symbol.toLowerCase()
-  const feed = feeds[key]
-  if (!feed) return
-  feed.stopped = true
-  if (feed.reconnectTimeout) clearTimeout(feed.reconnectTimeout)
-  if (feed.ws) feed.ws.close()
-  delete feeds[key]
-}
-
-module.exports = { ensureFeed, stopFeed }
+module.exports = { startBinanceFeed }
