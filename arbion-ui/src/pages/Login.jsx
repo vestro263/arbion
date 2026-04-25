@@ -13,6 +13,7 @@ export default function Login({ onLogin, onGoogleLogin }) {
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      console.log('[GOOGLE TOKEN]', tokenResponse.access_token)
       setLoading(true)
       setErr('')
       try {
@@ -22,6 +23,8 @@ export default function Login({ onLogin, onGoogleLogin }) {
           body: JSON.stringify({ access_token: tokenResponse.access_token }),
         })
         const text = await res.text()
+        console.log('[GOOGLE AUTH STATUS]', res.status, 'BODY:', text)
+        if (!text) { setErr('Empty response from server'); return }
         const data = JSON.parse(text)
         if (!res.ok) { setErr(data.error || 'Google sign-in failed'); return }
 
@@ -32,18 +35,17 @@ export default function Login({ onLogin, onGoogleLogin }) {
         if (onGoogleLogin) onGoogleLogin(data.access, data.user.username)
         navigate('/trade')
       } catch (e) {
+        console.error('[GOOGLE AUTH ERROR]', e)
         setErr('Google sign-in failed')
       } finally {
         setLoading(false)
       }
     },
-    onError: () => setErr('Google sign-in failed'),
+    onError: (e) => {
+      console.error('[GOOGLE LOGIN ERROR]', e)
+      setErr('Google sign-in failed')
+    },
   })
-
-const googleLogin = useGoogleLogin({
-  onSuccess: async (tokenResponse) => {
-    console.log('[GOOGLE TOKEN]', tokenResponse.access_token)
-    // paste the rest of your code below
 
   const submit = async () => {
     if (!user || !pass) { setErr('enter username and password'); return }
