@@ -10,7 +10,7 @@ export default function Trade({
   inTrade, tradeStatus,
   totalPnl, tradeCount,
   activePair,
-  onBuy, onSell,
+  onBuy, onSell, onClose,
 }) {
   const chartRef  = useRef(null)
   const lastSide  = useRef(null)
