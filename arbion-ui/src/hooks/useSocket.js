@@ -3,10 +3,10 @@ import { io } from 'socket.io-client'
 import { NODE_HOST } from '../lib/config'
 
 export function useSocket() {
-  const socketRef    = useRef(null)
-  const prevPrice    = useRef(null)
-  const tradeIdRef   = useRef(null)
-  const activePairRef = useRef('BTCUSD')  // ✅ track active symbol for place_order
+  const socketRef      = useRef(null)
+  const prevPrice      = useRef(null)
+  const tradeIdRef     = useRef(null)
+  const activeSymbol   = useRef('btcusdt')  // tracks current wsSymbol
 
   const [connected,   setConnected]   = useState(false)
   const [price,       setPrice]       = useState(null)
@@ -23,17 +23,27 @@ export function useSocket() {
       auth:                 { token },
       transports:           ['polling', 'websocket'],
       reconnection:         true,
-      reconnectionAttempts: 8,
+      reconnectionAttempts: 10,
+      reconnectionDelay:    1000,
     })
 
-    s.on('connect', () => setConnected(true))
+    s.on('connect', () => {
+      setConnected(true)
+      // Re-subscribe to active symbol on reconnect
+      if (activeSymbol.current !== 'btcusdt') {
+        s.emit('switch_symbol', { symbol: activeSymbol.current })
+      }
+    })
 
     s.on('disconnect', () => {
       setConnected(false)
       setInTrade(false)
     })
 
-    s.on('price', ({ price: p }) => {
+    // Price handler — only update if message matches active symbol
+    s.on('price', ({ symbol, price: p }) => {
+      // symbol from server is e.g. 'BTCUSDT', activeSymbol is 'btcusdt'
+      if (symbol.toLowerCase() !== activeSymbol.current.toLowerCase()) return
       const cur = parseFloat(p)
       setPriceDir(prevPrice.current === null ? '' : cur > prevPrice.current ? 'up' : 'dn')
       prevPrice.current = cur
@@ -77,7 +87,7 @@ export function useSocket() {
     })
 
     s.on('symbol_switched', ({ symbol }) => {
-      console.log('server switched to:', symbol)   // ✅ confirm server ack
+      console.log('confirmed switch to:', symbol)
     })
 
     s.on('error', ({ msg }) => {
@@ -89,29 +99,37 @@ export function useSocket() {
 
   const disconnect = useCallback(() => {
     socketRef.current?.disconnect()
-    socketRef.current = null
+    socketRef.current  = null
+    prevPrice.current  = null
+    tradeIdRef.current = null
     setConnected(false)
     setInTrade(false)
     setPrice(null)
     setPriceDir('')
-    prevPrice.current   = null
-    tradeIdRef.current  = null
   }, [])
 
-  // ✅ emit switch_symbol to server, update local ref for place_order
+  // Called when user clicks a pair in the watchlist
   const switchSymbol = useCallback((wsSymbol) => {
-    if (!socketRef.current?.connected) return
-    activePairRef.current = wsSymbol.toUpperCase()
-    prevPrice.current = null   // reset price direction on pair change
-    setPrice(null)
+    const key = wsSymbol.toLowerCase()
+    if (key === activeSymbol.current) return  // already on this pair, do nothing
+
+    activeSymbol.current  = key
+    prevPrice.current     = null  // reset direction tracking
+    setPrice(null)                // clear stale price immediately
     setPriceDir('')
-    socketRef.current.emit('switch_symbol', { symbol: wsSymbol })
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('switch_symbol', { symbol: key })
+    }
   }, [])
 
-  // ✅ uses active symbol, not hardcoded BTCUSD
   const placeOrder = useCallback((side) => {
     if (!socketRef.current?.connected || inTrade) return
-    socketRef.current.emit('place_order', { symbol: activePairRef.current, side, type: 'market' })
+    socketRef.current.emit('place_order', {
+      symbol: activeSymbol.current,
+      side,
+      size:   1,
+    })
     setTradeStatus({ state: 'placing', side })
   }, [inTrade])
 

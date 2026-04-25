@@ -15,7 +15,6 @@ const C = {
 }
 
 const PriceChart = forwardRef(function PriceChart({
-  height = 320,
   pair = 'BTC / USD',
   connected,
   inTrade,
@@ -24,7 +23,7 @@ const PriceChart = forwardRef(function PriceChart({
   onSell,
 }, ref) {
   const containerRef  = useRef(null)
-  const wrapRef       = useRef(null)   // ← moved here, top of component
+  const wrapRef       = useRef(null)
   const chartRef      = useRef(null)
   const seriesRef     = useRef(null)
   const markersPlugin = useRef(null)
@@ -37,12 +36,14 @@ const PriceChart = forwardRef(function PriceChart({
       const cur  = parseFloat(rawPrice)
       const time = Math.floor(Date.now() / 1000)
       const pts  = pointsRef.current
+
       if (pts.length && pts[pts.length - 1].time === time) {
         pts[pts.length - 1].value = cur
       } else {
         pts.push({ time, value: cur })
       }
       if (pts.length > 300) pts.splice(0, pts.length - 300)
+
       const trending = pts.length < 2 || cur >= pts[0].value
       seriesRef.current.applyOptions({
         color:       trending ? C.green     : C.red,
@@ -55,30 +56,40 @@ const PriceChart = forwardRef(function PriceChart({
     addMarker(side) {
       if (!markersPlugin.current) return
       const time = Math.floor(Date.now() / 1000)
-      markersRef.current = [
-        ...markersRef.current,
-        {
-          time,
-          position: side === 'buy' ? 'belowBar' : 'aboveBar',
-          color:    side === 'buy' ? C.green     : C.red,
-          shape:    side === 'buy' ? 'arrowUp'   : 'arrowDown',
-          text:     side.toUpperCase(),
-        },
-      ]
+      markersRef.current = [...markersRef.current, {
+        time,
+        position: side === 'buy' ? 'belowBar' : 'aboveBar',
+        color:    side === 'buy' ? C.green     : C.red,
+        shape:    side === 'buy' ? 'arrowUp'   : 'arrowDown',
+        text:     side.toUpperCase(),
+      }]
       markersPlugin.current.setMarkers(markersRef.current)
     },
 
     reset() {
       pointsRef.current  = []
       markersRef.current = []
-      if (!seriesRef.current) return
+      if (!seriesRef.current || !chartRef.current) return
+
+      // Clear all data and markers
       seriesRef.current.setData([])
       markersPlugin.current?.setMarkers([])
+
+      // Reset series color back to green
       seriesRef.current.applyOptions({
         color:       C.green,
         topColor:    C.greenArea,
         bottomColor: C.clear,
       })
+
+      // ✅ Force Y-axis to forget previous symbol's price range
+      chartRef.current.applyOptions({
+        rightPriceScale: {
+          autoScale:    true,
+          scaleMargins: { top: 0.08, bottom: 0.08 },
+        },
+      })
+      chartRef.current.timeScale().resetTimeScale()
     },
   }))
 
@@ -88,7 +99,7 @@ const PriceChart = forwardRef(function PriceChart({
 
     const chart = createChart(containerRef.current, {
       width:  containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight,  // fills container
+      height: containerRef.current.clientHeight,
       layout: {
         background: { color: C.bg },
         textColor:  C.text,
@@ -106,12 +117,13 @@ const PriceChart = forwardRef(function PriceChart({
       },
       rightPriceScale: {
         borderColor:  C.border,
+        autoScale:    true,
         scaleMargins: { top: 0.08, bottom: 0.08 },
       },
       timeScale: {
-        borderColor:    C.border,
-        timeVisible:    true,
-        secondsVisible: true,
+        borderColor:       C.border,
+        timeVisible:       true,
+        secondsVisible:    true,
         tickMarkFormatter: t => new Date(t * 1000).toTimeString().slice(0, 8),
       },
       handleScroll: true,
@@ -131,7 +143,6 @@ const PriceChart = forwardRef(function PriceChart({
     seriesRef.current     = series
     markersPlugin.current = createSeriesMarkers(series, [])
 
-    // resize observer: tracks both width AND height
     const ro = new ResizeObserver(([e]) => {
       chart.applyOptions({
         width:  e.contentRect.width,
@@ -147,9 +158,9 @@ const PriceChart = forwardRef(function PriceChart({
       seriesRef.current     = null
       markersPlugin.current = null
     }
-  }, [])  // ← no height dep, container drives size now
+  }, [])
 
-  // ── drag-to-resize handle ─────────────────────────────────────────────────
+  // ── drag-to-resize ────────────────────────────────────────────────────────
   useEffect(() => {
     const wrap   = wrapRef.current
     const handle = wrap?.querySelector('.chart-resize-handle')
@@ -166,12 +177,10 @@ const PriceChart = forwardRef(function PriceChart({
       document.addEventListener('mouseup',   onUp)
       e.preventDefault()
     }
-
     const onMove = e => {
       const next = Math.min(700, Math.max(180, startH + (e.clientY - startY)))
       wrap.style.height = next + 'px'
     }
-
     const onUp = () => {
       handle.classList.remove('dragging')
       document.removeEventListener('mousemove', onMove)
@@ -198,7 +207,6 @@ const PriceChart = forwardRef(function PriceChart({
 
   return (
     <div className="chart-wrap" ref={wrapRef}>
-
       <div className="chart-header">
         <span className="chart-pair">{pair}</span>
         <span className="chart-badge">LIVE</span>
@@ -219,7 +227,6 @@ const PriceChart = forwardRef(function PriceChart({
       </div>
 
       <div className="chart-resize-handle" />
-
     </div>
   )
 })
