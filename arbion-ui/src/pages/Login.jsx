@@ -40,6 +40,11 @@ export default function Login({ onLogin, onGoogleLogin }) {
     onError: () => setErr('Google sign-in failed'),
   })
 
+const googleLogin = useGoogleLogin({
+  onSuccess: async (tokenResponse) => {
+    console.log('[GOOGLE TOKEN]', tokenResponse.access_token)
+    // paste the rest of your code below
+
   const submit = async () => {
     if (!user || !pass) { setErr('enter username and password'); return }
     setLoading(true)
