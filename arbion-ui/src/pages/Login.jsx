@@ -3,15 +3,17 @@ import { useGoogleOneTapLogin } from '@react-oauth/google'
 import { DJANGO_HOST } from '../lib/config'
 
 export default function Login({ onLogin }) {
+  const [tab,     setTab]     = useState('login')  // 'login' | 'signup'
   const [user,    setUser]    = useState('')
+  const [email,   setEmail]   = useState('')
   const [pass,    setPass]    = useState('')
+  const [pass2,   setPass2]   = useState('')
   const [err,     setErr]     = useState('')
   const [loading, setLoading] = useState(false)
 
-  // ── google one tap ──────────────────────────────────────────────────────
+  // ── google one tap ────────────────────────────────────────────────────────
   useGoogleOneTapLogin({
     onSuccess: async ({ credential }) => {
-      // credential is an ID token (JWT) — send to Django
       try {
         const res  = await fetch(`${DJANGO_HOST}/api/users/auth/google/`, {
           method:  'POST',
@@ -28,8 +30,8 @@ export default function Login({ onLogin }) {
     onError: () => setErr('Google One Tap failed'),
   })
 
-  // ── standard login ──────────────────────────────────────────────────────
-  const handleSubmit = async e => {
+  // ── login ─────────────────────────────────────────────────────────────────
+  const handleLogin = async e => {
     e.preventDefault()
     setErr('')
     setLoading(true)
@@ -49,6 +51,29 @@ export default function Login({ onLogin }) {
     }
   }
 
+  // ── signup ────────────────────────────────────────────────────────────────
+  const handleSignup = async e => {
+    e.preventDefault()
+    setErr('')
+    if (pass !== pass2) return setErr('Passwords do not match')
+    if (pass.length < 6) return setErr('Password must be at least 6 characters')
+    setLoading(true)
+    try {
+      const res = await fetch(`${DJANGO_HOST}/api/users/signup/`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ username: user, email, password: pass }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Signup failed')
+      onLogin(data.access, data.user.username)
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="login-page">
       <div className="login-card">
@@ -59,40 +84,103 @@ export default function Login({ onLogin }) {
         </div>
         <div className="login-sub">trading engine</div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>username</label>
-            <input
-              type="text"
-              value={user}
-              onChange={e => setUser(e.target.value)}
-              autoComplete="username"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>password</label>
-            <input
-              type="password"
-              value={pass}
-              onChange={e => setPass(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </div>
-
-          {err && <div className="login-err">{err}</div>}
-
-          <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? 'signing in…' : 'sign in'}
+        {/* ── tabs ── */}
+        <div className="login-tabs">
+          <button
+            className={`login-tab ${tab === 'login'  ? 'active' : ''}`}
+            onClick={() => { setTab('login');  setErr('') }}
+          >
+            sign in
           </button>
-        </form>
-
-        <div className="login-divider">
-          <span>or</span>
+          <button
+            className={`login-tab ${tab === 'signup' ? 'active' : ''}`}
+            onClick={() => { setTab('signup'); setErr('') }}
+          >
+            create account
+          </button>
         </div>
 
-        {/* manual google button as fallback */}
+        {/* ── login form ── */}
+        {tab === 'login' && (
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <label>username</label>
+              <input
+                type="text"
+                value={user}
+                onChange={e => setUser(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>password</label>
+              <input
+                type="password"
+                value={pass}
+                onChange={e => setPass(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+            {err && <div className="login-err">{err}</div>}
+            <button className="btn-primary" type="submit" disabled={loading}>
+              {loading ? 'signing in…' : 'sign in'}
+            </button>
+          </form>
+        )}
+
+        {/* ── signup form ── */}
+        {tab === 'signup' && (
+          <form onSubmit={handleSignup}>
+            <div className="form-group">
+              <label>username</label>
+              <input
+                type="text"
+                value={user}
+                onChange={e => setUser(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>email <span style={{ color: 'var(--text4)' }}>(optional)</span></label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <div className="form-group">
+              <label>password</label>
+              <input
+                type="password"
+                value={pass}
+                onChange={e => setPass(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>confirm password</label>
+              <input
+                type="password"
+                value={pass2}
+                onChange={e => setPass2(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+            </div>
+            {err && <div className="login-err">{err}</div>}
+            <button className="btn-primary" type="submit" disabled={loading}>
+              {loading ? 'creating account…' : 'create account'}
+            </button>
+          </form>
+        )}
+
+        <div className="login-divider"><span>or</span></div>
+
         <GoogleLoginButton onLogin={onLogin} onErr={setErr} />
 
       </div>
@@ -100,23 +188,23 @@ export default function Login({ onLogin }) {
   )
 }
 
-// ── fallback button if one tap is dismissed ───────────────────────────────────
+// ── google button fallback ────────────────────────────────────────────────────
 function GoogleLoginButton({ onLogin, onErr }) {
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    const id = import.meta.env.VITE_GOOGLE_CLIENT_ID
-    if (!id || loaded) return
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId || loaded) return
 
-    const script    = document.createElement('script')
-    script.src      = 'https://accounts.google.com/gsi/client'
-    script.async    = true
-    script.onload   = () => {
+    const script  = document.createElement('script')
+    script.src    = 'https://accounts.google.com/gsi/client'
+    script.async  = true
+    script.onload = () => {
       window.google.accounts.id.initialize({
-        client_id: id,
+        client_id: clientId,
         callback:  async ({ credential }) => {
           try {
-            const res  = await fetch(`${import.meta.env.VITE_DJANGO_HOST}/api/users/auth/google/`, {
+            const res = await fetch(`${DJANGO_HOST}/api/users/auth/google/`, {
               method:  'POST',
               headers: { 'Content-Type': 'application/json' },
               body:    JSON.stringify({ id_token: credential }),

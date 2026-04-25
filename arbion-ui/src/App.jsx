@@ -68,11 +68,11 @@ export default function App() {
     switchSymbol(pair.wsSymbol)  // tell server for trade execution
   }
 
-  const handleLogin = async (user, pass) => {
-    const token = await login(user, pass)
-    connect(token)
-  }
 
+const handleLogin = (token, username) => {
+  localStorage.setItem("token", token)
+  connect(token)
+}
   const handleLogout = () => {
     disconnect()
     logout()
