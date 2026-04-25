@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react'
 import PriceChart from '../components/PriceChart'
+import OrderPanel from '../components/OrderPanel'
 
 const fmt  = n => Number(n).toFixed(2)
 const fmtC = n => (n >= 0 ? '+' : '') + '$' + fmt(Math.abs(n))
@@ -27,8 +28,14 @@ export default function Trade({
     chartRef.current?.reset?.()
   }, [activePair])
 
-  const handleBuy  = () => { lastSide.current = 'buy';  onBuy()  }
-  const handleSell = () => { lastSide.current = 'sell'; onSell() }
+  const handleBuy  = (side, p, params) => {
+      lastSide.current = 'buy'
+      onBuy(side, p, params)
+    }
+const handleSell = (side, p, params) => {
+  lastSide.current = 'sell'
+  onSell(side, p, params)
+}
 
   return (
     <div className="trade-page">
@@ -71,6 +78,16 @@ export default function Trade({
           tradeStatus={tradeStatus}
           onBuy={handleBuy}
           onSell={handleSell}
+        />
+
+        <OrderPanel
+          price={price}
+          connected={connected}
+          inTrade={inTrade}
+          tradeStatus={tradeStatus}
+          onBuy={handleBuy}
+          onSell={handleSell}
+          onClose={onClose}        // pass closeTrade from useSocket
         />
 
       </div>

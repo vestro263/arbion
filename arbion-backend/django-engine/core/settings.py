@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+import dj_database_url
 
 # Load .env
 load_dotenv()
@@ -19,8 +20,32 @@ SIMPLE_JWT = {
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'https://arbion-jpg.onrender.com',
+]
 
+# replace CORS_ALLOW_ALL_ORIGINS = True with specific origins in production
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'https://arbion-jpg.onrender.com',
+]
+
+# One Tap specifically needs this — it sends cookies
+CORS_ALLOW_CREDENTIALS = True
+
+# One Tap sends a POST with a credential — needs these headers
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'authorization',
+    'content-type',
+    'x-node-secret',
+]
+
+
+# ── Google OAuth ──────────────────────────────────────────────────────────────
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 
 # 📦 INSTALLED APPS
 INSTALLED_APPS = [
@@ -37,7 +62,10 @@ INSTALLED_APPS = [
 
     # local apps
     'users',
+    'trades',
 ]
+
+
 
 
 # ⚙️ MIDDLEWARE
@@ -85,12 +113,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# 🗄 DATABASE (PostgreSQL recommended)
+
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+    )
 }
 
 

@@ -95,15 +95,18 @@ export function useSocket() {
     }
   }, [])
 
-  const placeOrder = useCallback((side) => {
-    if (!socketRef.current?.connected || inTrade) return
-    socketRef.current.emit('place_order', {
-      symbol: activeSymbol.current,
-      side,
-      size:   1,
-    })
-    setTradeStatus({ state: 'placing', side })
-  }, [inTrade])
+  const placeOrder = useCallback((side, currentPrice, { size = 1, sl = null, tp = null } = {}) => {
+  if (!socketRef.current?.connected || inTrade) return
+  socketRef.current.emit('place_order', {
+    symbol: activeSymbol.current,
+    side,
+    size,
+    price: currentPrice,
+    sl,
+    tp,
+  })
+  setTradeStatus({ state: 'placing', side })
+}, [inTrade])
 
   const closeTrade = useCallback(() => {
     if (!socketRef.current?.connected || !tradeIdRef.current) return

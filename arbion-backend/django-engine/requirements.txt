@@ -6,3 +6,5 @@ python-dotenv
 djangorestframework
 djangorestframework-simplejwt
 whitenoise
+psycopg2-binary
+request

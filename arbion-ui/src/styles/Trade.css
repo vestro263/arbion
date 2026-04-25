@@ -561,3 +561,199 @@
   background: var(--cyan-border);
   width: 60px;
 }
+
+/* ─── order panel ────────────────────────────────────────────────────────────── */
+.order-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  animation: slide-up .3s ease both;
+}
+
+.op-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.op-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+/* ── lot buttons ── */
+.op-lots {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.op-lot-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: var(--r-xs);
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .15s;
+}
+.op-lot-btn:hover  { border-color: var(--border2); color: var(--text2); }
+.op-lot-btn.active {
+  border-color: var(--cyan-border);
+  background: var(--cyan-bg);
+  color: var(--cyan);
+}
+
+/* ── inputs ── */
+.op-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.op-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.op-prefix {
+  position: absolute;
+  left: 9px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+  pointer-events: none;
+}
+
+.op-input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 7px 10px 7px 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  width: 130px;
+  outline: none;
+  transition: border-color .15s;
+}
+.op-input:focus          { border-color: var(--cyan-border); }
+.op-input.sl:focus       { border-color: var(--red-border);  }
+.op-input.tp:focus       { border-color: var(--green-border);}
+.op-input-label          { font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
+
+.op-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.op-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.op-divider {
+  width: 1px;
+  background: var(--border);
+  align-self: stretch;
+  margin-top: 20px;
+}
+
+.op-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .04em;
+}
+
+.op-rr {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+/* ── action buttons ── */
+.op-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  margin-left: auto;
+}
+
+.op-btn-buy,
+.op-btn-sell,
+.op-btn-close {
+  width: 100%;
+  padding: 13px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity .15s, box-shadow .2s, transform .1s;
+}
+.op-btn-buy:active,
+.op-btn-sell:active,
+.op-btn-close:active  { transform: scale(.97); }
+.op-btn-buy:disabled,
+.op-btn-sell:disabled { opacity: .25; cursor: not-allowed; }
+
+.op-btn-buy {
+  background: var(--green-bg);
+  color: var(--green);
+  border-color: var(--green-border);
+}
+.op-btn-buy:not(:disabled):hover {
+  box-shadow: var(--green-glow);
+  opacity: .85;
+}
+
+.op-btn-sell {
+  background: var(--red-bg);
+  color: var(--red);
+  border-color: var(--red-border);
+}
+.op-btn-sell:not(:disabled):hover {
+  box-shadow: var(--red-glow);
+  opacity: .85;
+}
+
+.op-btn-close {
+  background: var(--bg3);
+  color: var(--text2);
+  border-color: var(--border2);
+}
+.op-btn-close:hover { border-color: var(--red-border); color: var(--red); }
+
+.op-btn-price {
+  font-size: 10px;
+  opacity: .6;
+  font-weight: 400;
+}
+
+.op-live-pnl {
+  font-size: 11px;
+  font-weight: 700;
+}

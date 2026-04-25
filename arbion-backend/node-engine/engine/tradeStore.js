@@ -6,23 +6,22 @@ function getUserTrades(userId) {
   return store[userId] || []
 }
 
-function createTrade({ userId, symbol, side, size, entryPrice }) {
-  if (!store[userId]) store[userId] = []
-
+function createTrade({ userId, symbol, side, size, entryPrice, sl, tp }) {
   const trade = {
-    id:        randomUUID(),
+    id:         uuid(),
     userId,
     symbol,
     side,
-    size,
-    entryPrice,
-    exitPrice: null,
-    pnl:       null,
-    status:    'open',
-    openedAt:  new Date().toISOString(),
-    closedAt:  null,
+    size:       Number(size),
+    entryPrice: Number(entryPrice),
+    sl:         sl ? Number(sl) : null,
+    tp:         tp ? Number(tp) : null,
+    exitPrice:  null,
+    pnl:        null,
+    status:     'open',
+    openedAt:   new Date().toISOString(),
+    closedAt:   null,
   }
-
   store[userId].push(trade)
   return trade
 }

@@ -8,4 +8,7 @@ urlpatterns = [
     path('api/', include('users.urls')),
 
 path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+path('api/trades/',   include('trades.urls')),
+    path('api/users/', include('users.urls')),
+
 ]
