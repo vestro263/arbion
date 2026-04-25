@@ -2,7 +2,8 @@
 const WebSocket = require('ws')
 
 function startBinanceFeed(symbol, onPrice) {
-  const url = `wss://stream.binance.com:9443/ws/${symbol}@miniTicker`
+      const url = `wss://stream.binance.us:9443/ws/${symbol}@miniTicker`
+
 
   function connect() {
     const ws = new WebSocket(url)
