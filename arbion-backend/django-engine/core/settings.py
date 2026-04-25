@@ -27,6 +27,8 @@ ALLOWED_HOSTS = [
 'arbion-jpg.onrender.com',
 ]
 
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+
 # replace CORS_ALLOW_ALL_ORIGINS = True with specific origins in production
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
