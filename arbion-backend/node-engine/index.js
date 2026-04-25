@@ -10,9 +10,23 @@ const { createTrade, closeTrade, getUserTrades } = require('./engine/tradeStore'
 const app    = express()
 const server = http.createServer(app)
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://arbion-feos.onrender.com'
+
 const io = new Server(server, {
-  cors: { origin: '*' },
+  cors: {
+    origin:      FRONTEND_URL,
+    methods:     ['GET', 'POST'],
+    credentials: true,
+  },
   transports: ['websocket', 'polling'],
+})
+
+// ── CORS for Express HTTP routes ──────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin',  FRONTEND_URL)
+  res.header('Access-Control-Allow-Methods', 'GET, POST')
+  res.header('Access-Control-Allow-Headers', 'Content-Type')
+  next()
 })
 
 app.use(express.json())
@@ -32,9 +46,8 @@ io.use((socket, next) => {
 })
 
 // ── price state per symbol ────────────────────────────────────────────────────
-const latestPrices = {}   // { 'btcusdt': 105000.12, 'ethusdt': 3200.00 }
+const latestPrices = {}
 
-// start default feed
 startBinanceFeed('btcusdt', (price) => {
   latestPrices['btcusdt'] = price
   io.emit('price', { symbol: 'BTCUSDT', price: price.toFixed(2) })
@@ -45,29 +58,22 @@ io.on('connection', (socket) => {
   const userId = socket.user.id
   console.log('connected:', userId)
 
-  // send open trades on reconnect
   const open = getUserTrades(userId).filter(t => t.status === 'open')
   if (open.length) socket.emit('open_trades', open)
 
-  // ── switch_symbol ─────────────────────────────────────────────────────────
-  // frontend emits this when user picks a new pair
   socket.on('switch_symbol', ({ symbol }) => {
     const key = symbol.toLowerCase()
-
     startBinanceFeed(key, (price) => {
       latestPrices[key] = price
       io.emit('price', { symbol: key.toUpperCase(), price: price.toFixed(2) })
     })
-
     console.log(`switched feed to: ${key}`)
     socket.emit('symbol_switched', { symbol: key.toUpperCase() })
   })
 
-  // ── place_order ───────────────────────────────────────────────────────────
   socket.on('place_order', ({ symbol = 'btcusdt', side, size = 1 }) => {
     const key = symbol.toLowerCase()
     const price = latestPrices[key]
-
     if (!price) return socket.emit('error', { msg: `No price yet for ${symbol}` })
 
     const existing = getUserTrades(userId).find(t => t.status === 'open')
@@ -85,7 +91,6 @@ io.on('connection', (socket) => {
     })
   })
 
-  // ── close_trade ───────────────────────────────────────────────────────────
   socket.on('close_trade', ({ tradeId }) => {
     const trade = getUserTrades(userId).find(t => t.id === tradeId)
     if (!trade) return socket.emit('error', { msg: 'Trade not found' })
@@ -116,4 +121,10 @@ const PORT = process.env.PORT || 4000
 
 server.listen(PORT, () => {
   console.log(`Node engine → http://0.0.0.0:${PORT}`)
+
+  // keep-alive ping to prevent Render free tier spin-down
+  const SELF = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`
+  setInterval(() => {
+    fetch(`${SELF}/health`).catch(() => {})
+  }, 10 * 60 * 1000)
 })
