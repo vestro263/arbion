@@ -1,18 +1,4 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
-import { createChart, CrosshairMode, LineStyle, AreaSeries, createSeriesMarkers } from 'lightweight-charts'
-
-const C = {
-  bg:        '#0a0a0b',
-  grid:      '#18181c',
-  border:    '#242428',
-  text:      '#6b6b72',
-  hair:      '#3a3a40',
-  green:     '#22c55e',
-  red:       '#ef4444',
-  greenArea: 'rgba(34,197,94,0.12)',
-  redArea:   'rgba(239,68,68,0.12)',
-  clear:     'rgba(0,0,0,0)',
-}
 
 const PriceChart = forwardRef(function PriceChart({
   pair = 'BTC / USD',
@@ -22,145 +8,60 @@ const PriceChart = forwardRef(function PriceChart({
   onBuy,
   onSell,
 }, ref) {
-  const containerRef  = useRef(null)
-  const wrapRef       = useRef(null)
-  const chartRef      = useRef(null)
-  const seriesRef     = useRef(null)
-  const markersPlugin = useRef(null)
-  const pointsRef     = useRef([])
-  const markersRef    = useRef([])
+  const wrapRef      = useRef(null)
+  const containerRef = useRef(null)
+  const widgetRef    = useRef(null)
 
+  // expose reset (pair switch) — just reload the widget with new symbol
   useImperativeHandle(ref, () => ({
-    update(rawPrice) {
-      if (!seriesRef.current) return
-      const cur  = parseFloat(rawPrice)
-      const time = Math.floor(Date.now() / 1000)
-      const pts  = pointsRef.current
-
-      if (pts.length && pts[pts.length - 1].time === time) {
-        pts[pts.length - 1].value = cur
-      } else {
-        pts.push({ time, value: cur })
-      }
-      if (pts.length > 300) pts.splice(0, pts.length - 300)
-
-      const trending = pts.length < 2 || cur >= pts[0].value
-      seriesRef.current.applyOptions({
-        color:       trending ? C.green     : C.red,
-        topColor:    trending ? C.greenArea : C.redArea,
-        bottomColor: C.clear,
-      })
-      seriesRef.current.update({ time, value: cur })
-    },
-
-    addMarker(side) {
-      if (!markersPlugin.current) return
-      const time = Math.floor(Date.now() / 1000)
-      markersRef.current = [...markersRef.current, {
-        time,
-        position: side === 'buy' ? 'belowBar' : 'aboveBar',
-        color:    side === 'buy' ? C.green     : C.red,
-        shape:    side === 'buy' ? 'arrowUp'   : 'arrowDown',
-        text:     side.toUpperCase(),
-      }]
-      markersPlugin.current.setMarkers(markersRef.current)
-    },
-
-    reset() {
-      pointsRef.current  = []
-      markersRef.current = []
-      if (!seriesRef.current || !chartRef.current) return
-
-      // Clear all data and markers
-      seriesRef.current.setData([])
-      markersPlugin.current?.setMarkers([])
-
-      // Reset series color back to green
-      seriesRef.current.applyOptions({
-        color:       C.green,
-        topColor:    C.greenArea,
-        bottomColor: C.clear,
-      })
-
-      // ✅ Force Y-axis to forget previous symbol's price range
-      chartRef.current.applyOptions({
-        rightPriceScale: {
-          autoScale:    true,
-          scaleMargins: { top: 0.08, bottom: 0.08 },
-        },
-      })
-      chartRef.current.timeScale().resetTimeScale()
-    },
+    update()     {},   // no-op — TV handles price internally
+    addMarker()  {},   // no-op — could use TV drawings API later
+    reset()      { mountWidget() },
   }))
 
-  // ── chart init ────────────────────────────────────────────────────────────
-  useEffect(() => {
+  function getSymbol(pairLabel) {
+    // 'BTC / USD' → 'BINANCE:BTCUSDT'
+    const clean = pairLabel.replace(/\s/g, '').replace('/', '')
+    return `BINANCE:${clean}T`
+  }
+
+  function mountWidget() {
     if (!containerRef.current) return
 
-    const chart = createChart(containerRef.current, {
-      width:  containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight,
-      layout: {
-        background: { color: C.bg },
-        textColor:  C.text,
-        fontFamily: "'DM Mono', 'Courier New', monospace",
-        fontSize:   11,
-      },
-      grid: {
-        vertLines: { color: C.grid, style: LineStyle.Solid },
-        horzLines: { color: C.grid, style: LineStyle.Solid },
-      },
-      crosshair: {
-        mode:     CrosshairMode.Normal,
-        vertLine: { color: C.hair, labelBackgroundColor: '#18181c' },
-        horzLine: { color: C.hair, labelBackgroundColor: '#18181c' },
-      },
-      rightPriceScale: {
-        borderColor:  C.border,
-        autoScale:    true,
-        scaleMargins: { top: 0.08, bottom: 0.08 },
-      },
-      timeScale: {
-        borderColor:       C.border,
-        timeVisible:       true,
-        secondsVisible:    true,
-        tickMarkFormatter: t => new Date(t * 1000).toTimeString().slice(0, 8),
-      },
-      handleScroll: true,
-      handleScale:  true,
+    // clear previous
+    containerRef.current.innerHTML = ''
+    widgetRef.current = null
+
+    const script = document.createElement('script')
+    script.src   = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
+    script.async = true
+    script.innerHTML = JSON.stringify({
+      autosize:          true,
+      symbol:            getSymbol(pair),
+      interval:          '1',       // 1 minute
+      timezone:          'Etc/UTC',
+      theme:             'dark',
+      style:             '1',       // candlestick
+      locale:            'en',
+      toolbar_bg:        '#0a0a0b',
+      enable_publishing: false,
+      hide_top_toolbar:  false,
+      hide_legend:       false,
+      save_image:        false,
+      backgroundColor:   '#0a0a0b',
+      gridColor:         'rgba(255,255,255,0.04)',
+      container_id:      'tv_chart',
     })
 
-    const series = chart.addSeries(AreaSeries, {
-      color:            C.green,
-      lineWidth:        2,
-      topColor:         C.greenArea,
-      bottomColor:      C.clear,
-      priceLineVisible: false,
-      lastValueVisible: true,
-    })
+    containerRef.current.appendChild(script)
+  }
 
-    chartRef.current      = chart
-    seriesRef.current     = series
-    markersPlugin.current = createSeriesMarkers(series, [])
+  // mount on load
+  useEffect(() => {
+    mountWidget()
+  }, [pair])
 
-    const ro = new ResizeObserver(([e]) => {
-      chart.applyOptions({
-        width:  e.contentRect.width,
-        height: e.contentRect.height,
-      })
-    })
-    ro.observe(containerRef.current)
-
-    return () => {
-      ro.disconnect()
-      chart.remove()
-      chartRef.current      = null
-      seriesRef.current     = null
-      markersPlugin.current = null
-    }
-  }, [])
-
-  // ── drag-to-resize ────────────────────────────────────────────────────────
+  // drag-to-resize
   useEffect(() => {
     const wrap   = wrapRef.current
     const handle = wrap?.querySelector('.chart-resize-handle')
@@ -178,7 +79,7 @@ const PriceChart = forwardRef(function PriceChart({
       e.preventDefault()
     }
     const onMove = e => {
-      const next = Math.min(700, Math.max(180, startH + (e.clientY - startY)))
+      const next = Math.min(900, Math.max(300, startH + (e.clientY - startY)))
       wrap.style.height = next + 'px'
     }
     const onUp = () => {
@@ -191,7 +92,7 @@ const PriceChart = forwardRef(function PriceChart({
     return () => handle.removeEventListener('mousedown', onDown)
   }, [])
 
-  // ── status label ──────────────────────────────────────────────────────────
+  // status label
   const fmt = n => Number(n).toFixed(2)
   const statusText = () => {
     if (!connected)   return { msg: 'connecting…',           cls: '' }
@@ -207,26 +108,46 @@ const PriceChart = forwardRef(function PriceChart({
 
   return (
     <div className="chart-wrap" ref={wrapRef}>
-      <div className="chart-header">
-        <span className="chart-pair">{pair}</span>
-        <span className="chart-badge">LIVE</span>
-        <span className="chart-meta">1s interval</span>
+
+      {/* TradingView iframe container */}
+      <div
+        ref={containerRef}
+        className="tradingview-widget-container"
+        style={{ height: '100%', width: '100%' }}
+      >
+        <div
+          id="tv_chart"
+          className="tradingview-widget-container__widget"
+          style={{ height: 'calc(100% - 32px)', width: '100%' }}
+        />
       </div>
 
-      <div ref={containerRef} className="chart-canvas" />
-
+      {/* overlay: status + buttons */}
       <div className="chart-overlay">
         <div className={`chart-status ${cls}`}>
           <span className="chart-status-dot" />
           {msg}
         </div>
         <div className="chart-trade-btns">
-          <button className="chart-btn-buy"  onClick={onBuy}  disabled={!connected || inTrade}>▲ BUY</button>
-          <button className="chart-btn-sell" onClick={onSell} disabled={!connected || inTrade}>▼ SELL</button>
+          <button
+            className="chart-btn-buy"
+            onClick={onBuy}
+            disabled={!connected || inTrade}
+          >
+            ▲ BUY
+          </button>
+          <button
+            className="chart-btn-sell"
+            onClick={onSell}
+            disabled={!connected || inTrade}
+          >
+            ▼ SELL
+          </button>
         </div>
       </div>
 
       <div className="chart-resize-handle" />
+
     </div>
   )
 })
