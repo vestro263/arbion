@@ -48,69 +48,102 @@ io.use((socket, next) => {
 // ── price state per symbol ────────────────────────────────────────────────────
 const latestPrices = {}
 
+// start default BTC feed
 startBinanceFeed('btcusdt', (price) => {
   latestPrices['btcusdt'] = price
-  io.emit('price', { symbol: 'BTCUSDT', price: price.toFixed(2) })
+  io.to('btcusdt').emit('price', { symbol: 'BTCUSDT', price: price.toFixed(2) })
 })
 
 // ── connection ────────────────────────────────────────────────────────────────
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   const userId = socket.user.id
   console.log('connected:', userId)
 
-  const open = getUserTrades(userId).filter(t => t.status === 'open')
-  if (open.length) socket.emit('open_trades', open)
+  // put every user in BTC room by default
+  socket.join('btcusdt')
 
+  // restore open trades on reconnect
+  try {
+    const open = (await getUserTrades(userId)).filter(t => t.status === 'open')
+    if (open.length) socket.emit('open_trades', open)
+  } catch (err) {
+    console.error('getUserTrades error:', err.message)
+  }
+
+  // ── switch_symbol ─────────────────────────────────────────────────────────
   socket.on('switch_symbol', ({ symbol }) => {
     const key = symbol.toLowerCase()
+
+    // leave all symbol rooms, join the new one
+    Object.keys(socket.rooms).forEach(room => {
+      if (room !== socket.id) socket.leave(room)
+    })
+    socket.join(key)
+
+    // start feed if not already running
     startBinanceFeed(key, (price) => {
       latestPrices[key] = price
-      io.emit('price', { symbol: key.toUpperCase(), price: price.toFixed(2) })
+      io.to(key).emit('price', { symbol: key.toUpperCase(), price: price.toFixed(2) })
     })
-    console.log(`switched feed to: ${key}`)
+
+    console.log(`${userId} switched to: ${key}`)
     socket.emit('symbol_switched', { symbol: key.toUpperCase() })
   })
 
-  socket.on('place_order', ({ symbol = 'btcusdt', side, size = 1 }) => {
+  // ── place_order ───────────────────────────────────────────────────────────
+  socket.on('place_order', async ({ symbol = 'btcusdt', side, size = 1 }) => {
     const key = symbol.toLowerCase()
     const price = latestPrices[key]
     if (!price) return socket.emit('error', { msg: `No price yet for ${symbol}` })
 
-    const existing = getUserTrades(userId).find(t => t.status === 'open')
-    if (existing) return socket.emit('error', { msg: 'Trade already open' })
+    try {
+      const trades   = await getUserTrades(userId)
+      const existing = trades.find(t => t.status === 'open')
+      if (existing) return socket.emit('error', { msg: 'Trade already open' })
 
-    const trade = createTrade({ userId, symbol: key, side, size, entryPrice: price })
-    console.log('trade opened:', trade)
+      const trade = await createTrade({ userId, symbol: key, side, size, entryPrice: price })
+      console.log('trade opened:', trade)
 
-    socket.emit('trade_started', {
-      tradeId:    trade.id,
-      entryPrice: trade.entryPrice,
-      side:       trade.side,
-      size:       trade.size,
-      symbol:     trade.symbol,
-    })
+      socket.emit('trade_started', {
+        tradeId:    trade.id,
+        entryPrice: trade.entryPrice,
+        side:       trade.side,
+        size:       trade.size,
+        symbol:     trade.symbol,
+      })
+    } catch (err) {
+      console.error('place_order error:', err.message)
+      socket.emit('error', { msg: 'Failed to place order' })
+    }
   })
 
-  socket.on('close_trade', ({ tradeId }) => {
-    const trade = getUserTrades(userId).find(t => t.id === tradeId)
-    if (!trade) return socket.emit('error', { msg: 'Trade not found' })
+  // ── close_trade ───────────────────────────────────────────────────────────
+  socket.on('close_trade', async ({ tradeId }) => {
+    try {
+      const trades = await getUserTrades(userId)
+      const trade  = trades.find(t => t.id === tradeId)
+      if (!trade) return socket.emit('error', { msg: 'Trade not found' })
 
-    const price = latestPrices[trade.symbol.toLowerCase()]
-    if (!price) return socket.emit('error', { msg: 'No price available' })
+      const price = latestPrices[trade.symbol.toLowerCase()]
+      if (!price) return socket.emit('error', { msg: 'No price available' })
 
-    const result = closeTrade(userId, tradeId, price)
-    if (!result) return socket.emit('error', { msg: 'Could not close trade' })
+      const result = await closeTrade(userId, tradeId, price)
+      if (!result) return socket.emit('error', { msg: 'Could not close trade' })
 
-    console.log('trade closed:', result)
+      console.log('trade closed:', result)
 
-    socket.emit('trade_result', {
-      tradeId:    result.id,
-      entryPrice: result.entryPrice,
-      exitPrice:  result.exitPrice,
-      pnl:        result.pnl,
-      side:       result.side,
-      size:       result.size,
-    })
+      socket.emit('trade_result', {
+        tradeId:    result.id,
+        entryPrice: result.entryPrice,
+        exitPrice:  result.exitPrice,
+        pnl:        result.pnl,
+        side:       result.side,
+        size:       result.size,
+      })
+    } catch (err) {
+      console.error('close_trade error:', err.message)
+      socket.emit('error', { msg: 'Failed to close trade' })
+    }
   })
 
   socket.on('disconnect', () => console.log('disconnected:', userId))
