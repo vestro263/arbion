@@ -45,6 +45,8 @@ io.use((socket, next) => {
 
 const latestPrices = {}
 const activeFeeds  = new Set()
+const userSockets  = {}
+const userAccounts = {}  // userId → 'demo' | 'real'
 
 function trackSymbol(wsSymbol) {
   const key = wsSymbol.toLowerCase()
@@ -57,8 +59,6 @@ function trackSymbol(wsSymbol) {
 }
 
 trackSymbol('btcusdt')
-
-const userSockets = {}
 
 async function checkSLTP(symbol, price) {
   for (const [userId, socket] of Object.entries(userSockets)) {
@@ -84,6 +84,12 @@ async function checkSLTP(symbol, price) {
         size:       result.size,
         closedBy:   hit,
       })
+      await djangoPost('close/', {
+        tradeId:   result.id,
+        exitPrice: result.exitPrice,
+        pnl:       result.pnl,
+        closedBy:  hit,
+      })
     } catch (err) {
       console.error('checkSLTP error:', err.message)
     }
@@ -107,8 +113,11 @@ io.on('connection', async (socket) => {
   const userId = socket.user.id
   console.log('connected:', userId)
 
-  userSockets[userId] = socket
-  socket.activeSymbol = 'btcusdt'
+  userSockets[userId]  = socket
+  socket.activeSymbol  = 'btcusdt'
+
+  // cache account type from handshake, default to demo
+  userAccounts[userId] = socket.handshake.auth?.account_type || 'demo'
 
   try {
     const open = (await getUserTrades(userId)).filter(t => t.status === 'open')
@@ -124,6 +133,12 @@ io.on('connection', async (socket) => {
     const key = symbol.toLowerCase()
     socket.activeSymbol = key
     trackSymbol(key)
+  })
+
+  // update account type when user switches demo/real
+  socket.on('switch_account', ({ account_type }) => {
+    userAccounts[userId] = account_type
+    console.log(`[ACCOUNT] user ${userId} switched to ${account_type}`)
   })
 
   socket.on('place_order', async ({ symbol, side, size = 1, price: clientPrice, sl, tp }) => {
@@ -142,7 +157,6 @@ io.on('connection', async (socket) => {
 
     try {
       const trades   = await getUserTrades(userId)
-      console.log('[EXISTING TRADES]', trades)
       const existing = trades.find(t => t.status === 'open')
       if (existing) return socket.emit('error', { msg: 'Trade already open' })
 
@@ -165,14 +179,15 @@ io.on('connection', async (socket) => {
       })
 
       await djangoPost('open/', {
-        tradeId:    trade.id,
-        userId:     userId,
-        symbol:     trade.symbol,
-        side:       trade.side,
-        size:       trade.size,
-        entryPrice: trade.entryPrice,
-        sl:         trade.sl,
-        tp:         trade.tp,
+        tradeId:      trade.id,
+        userId:       userId,
+        symbol:       trade.symbol,
+        side:         trade.side,
+        size:         trade.size,
+        entryPrice:   trade.entryPrice,
+        sl:           trade.sl,
+        tp:           trade.tp,
+        account_type: userAccounts[userId] || 'demo',
       })
     } catch (err) {
       console.error('place_order error:', err.message)
@@ -218,12 +233,13 @@ io.on('connection', async (socket) => {
 
   socket.on('disconnect', () => {
     delete userSockets[userId]
+    delete userAccounts[userId]
     console.log('disconnected:', userId)
   })
 })
 
 const DJANGO_URL  = process.env.DJANGO_URL  || 'http://localhost:8000'
-const NODE_SECRET = process.env.NODE_SECRET  || 'node_internal_secret'
+const NODE_SECRET = process.env.NODE_SECRET || 'node_internal_secret'
 
 async function djangoPost(path, body) {
   try {

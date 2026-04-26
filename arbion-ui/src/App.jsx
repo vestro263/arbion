@@ -11,6 +11,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login     from './pages/Login'
 import Trade     from './pages/Trade'
 import Portfolio from './pages/Portfolio'
+import Settings from './pages/Settings'
 
 import { PAIRS, DEFAULT_PAIR } from './constants/pairs'
 import './App.css'
@@ -138,6 +139,15 @@ export default function App() {
             <Portfolio trades={trades} totalPnl={totalPnl} />
           </ProtectedRoute>
         } />
+        <Route path="/settings" element={
+      <ProtectedRoute jwt={jwt}>
+        <Settings
+          jwt={jwt}
+          activeAccount={activeAccount}
+          onSwitchAccount={handleSwitchAccount}
+        />
+      </ProtectedRoute>
+    } />
         <Route path="*" element={<Navigate to={jwt ? '/trade' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>

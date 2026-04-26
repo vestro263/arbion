@@ -12,6 +12,7 @@ export default function Nav({ username, onLogout, activeAccount, demoBalance, re
       <div className="nav-links">
         <Link className={`nav-btn ${pathname === '/trade'     ? 'active' : ''}`} to="/trade">Trade</Link>
         <Link className={`nav-btn ${pathname === '/portfolio' ? 'active' : ''}`} to="/portfolio">Portfolio</Link>
+        <Link className={`nav-btn ${pathname === '/settings' ? 'active' : ''}`} to="/settings">Settings</Link>
       </div>
 
       <div className="nav-center">

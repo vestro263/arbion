@@ -8,7 +8,7 @@ from google.auth.transport import requests as google_requests
 import requests as http_requests
 import os
 
-from .models import Wallet
+from .models import Wallet, KYC
 
 User = get_user_model()
 
@@ -155,3 +155,54 @@ def reset_demo(request):
         wallet.balance = 10000
         wallet.save()
     return Response({'demo_balance': '10000.00'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_kyc(request):
+    # check if already submitted
+    if hasattr(request.user, 'kyc'):
+        return Response({'error': 'KYC already submitted'}, status=400)
+
+    d = request.data
+    required = ['full_name', 'dob', 'country', 'phone', 'id_type', 'id_number']
+    for field in required:
+        if not d.get(field):
+            return Response({'error': f'{field} is required'}, status=400)
+
+    try:
+        KYC.objects.create(
+            user        = request.user,
+            full_name   = d['full_name'],
+            dob         = d['dob'],
+            country     = d['country'],
+            phone       = d['phone'],
+            id_type     = d['id_type'],
+            id_number   = d['id_number'],
+            address     = d.get('address', ''),
+            city        = d.get('city', ''),
+            postal_code = d.get('postal_code', ''),
+        )
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+    # auto-approve and activate real account
+    request.user.active_account = 'real'
+    request.user.save(update_fields=['active_account'])
+
+    # ensure real wallet exists
+    Wallet.objects.get_or_create(
+        user=request.user,
+        account_type='real',
+        defaults={'balance': 0}
+    )
+
+    return Response({'status': 'approved', 'user': user_payload(request.user)})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def kyc_status(request):
+    if not hasattr(request.user, 'kyc'):
+        return Response({'status': None})
+    return Response({'status': request.user.kyc.status})
