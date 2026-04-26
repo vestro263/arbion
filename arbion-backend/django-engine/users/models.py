@@ -16,6 +16,7 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+import random
 
 class Wallet(models.Model):
     ACCOUNT_TYPES = [('demo', 'Demo'), ('real', 'Real')]
@@ -25,15 +26,15 @@ class Wallet(models.Model):
         on_delete=models.CASCADE,
         related_name='wallets',
     )
-    account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPES, default='demo')
-    balance      = models.DecimalField(max_digits=20, decimal_places=2, default=10000)
+    account_type   = models.CharField(max_length=10, choices=ACCOUNT_TYPES, default='demo')
+    balance        = models.DecimalField(max_digits=20, decimal_places=2, default=10000)
+    account_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
     class Meta:
         unique_together = ('user', 'account_type')
 
     def __str__(self):
         return f"{self.user.username} [{self.account_type}] — ${self.balance}"
-
 
 class KYC(models.Model):
     ID_TYPES = [

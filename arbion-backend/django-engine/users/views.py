@@ -20,27 +20,19 @@ def get_tokens(user):
         'access': str(refresh.access_token),
     }
 
-
 def ensure_wallets(user):
-    # create both demo and real wallets on signup
-    Wallet.objects.get_or_create(user=user, account_type='demo',
-                                 defaults={'balance': 10000})
-    Wallet.objects.get_or_create(user=user, account_type='real',
-                                 defaults={'balance': 0})
+    demo, created_demo = Wallet.objects.get_or_create(
+        user=user, account_type='demo',
+        defaults={'balance': 10000}
+    )
+    if created_demo or not demo.account_number:
+        demo.account_number = generate_account_number()
+        demo.save(update_fields=['account_number'])
 
-
-def user_payload(user):
-    demo_wallet = user.wallets.filter(account_type='demo').first()
-    real_wallet = user.wallets.filter(account_type='real').first()
-    return {
-        'id':             user.id,
-        'username':       user.username,
-        'email':          user.email,
-        'avatar':         user.avatar,
-        'active_account': user.active_account,
-        'demo_balance':   str(demo_wallet.balance) if demo_wallet else '10000.00',
-        'real_balance':   str(real_wallet.balance) if real_wallet else '0.00',
-    }
+    Wallet.objects.get_or_create(
+        user=user, account_type='real',
+        defaults={'balance': 0}
+    )
 
 
 @api_view(['POST'])
@@ -156,11 +148,17 @@ def reset_demo(request):
         wallet.save()
     return Response({'demo_balance': '10000.00'})
 
+import random
+
+def generate_account_number():
+    while True:
+        number = f"ARB-{random.randint(10000000, 99999999)}"
+        if not Wallet.objects.filter(account_number=number).exists():
+            return number
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_kyc(request):
-    # check if already submitted
     if hasattr(request.user, 'kyc'):
         return Response({'error': 'KYC already submitted'}, status=400)
 
@@ -186,18 +184,25 @@ def submit_kyc(request):
     except Exception as e:
         return Response({'error': str(e)}, status=500)
 
-    # auto-approve and activate real account
+    # activate real account
     request.user.active_account = 'real'
     request.user.save(update_fields=['active_account'])
 
-    # ensure real wallet exists
-    Wallet.objects.get_or_create(
+    # create real wallet with account number
+    wallet, _ = Wallet.objects.get_or_create(
         user=request.user,
         account_type='real',
         defaults={'balance': 0}
     )
+    if not wallet.account_number:
+        wallet.account_number = generate_account_number()
+        wallet.save(update_fields=['account_number'])
 
-    return Response({'status': 'approved', 'user': user_payload(request.user)})
+    return Response({
+        'status':         'approved',
+        'account_number': wallet.account_number,
+        'user':           user_payload(request.user),
+    })
 
 
 @api_view(['GET'])
@@ -206,3 +211,18 @@ def kyc_status(request):
     if not hasattr(request.user, 'kyc'):
         return Response({'status': None})
     return Response({'status': request.user.kyc.status})
+
+def user_payload(user):
+    demo_wallet = user.wallets.filter(account_type='demo').first()
+    real_wallet = user.wallets.filter(account_type='real').first()
+    return {
+        'id':                   user.id,
+        'username':             user.username,
+        'email':                user.email,
+        'avatar':               user.avatar,
+        'active_account':       user.active_account,
+        'demo_balance':         str(demo_wallet.balance) if demo_wallet else '10000.00',
+        'real_balance':         str(real_wallet.balance) if real_wallet else '0.00',
+        'demo_account_number':  demo_wallet.account_number if demo_wallet else None,
+        'real_account_number':  real_wallet.account_number if real_wallet else None,
+    }

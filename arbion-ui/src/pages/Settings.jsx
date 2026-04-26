@@ -23,13 +23,15 @@ const ID_TYPES = [
   { value: 'drivers',     label: "Driver's License" },
 ]
 
-export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
-  const navigate  = useNavigate()
-  const [tab,     setTab]     = useState('account')
-  const [loading, setLoading] = useState(false)
-  const [done,    setDone]    = useState(false)
-  const [err,     setErr]     = useState('')
-  const [focused, setFocused] = useState(null)
+export default function Settings({ jwt, activeAccount, demoBalance, realBalance, onSwitchAccount }) {
+  const navigate           = useNavigate()
+  const [tab,           setTab]           = useState('account')
+  const [loading,       setLoading]       = useState(false)
+  const [done,          setDone]          = useState(false)
+  const [err,           setErr]           = useState('')
+  const [focused,       setFocused]       = useState(null)
+  const [accountNumber, setAccountNumber] = useState('')
+  const [copied,        setCopied]        = useState(false)
 
   const [form, setForm] = useState({
     full_name:   '',
@@ -63,6 +65,7 @@ export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
       })
       const data = await res.json()
       if (!res.ok) { setErr(data.error || 'Submission failed'); return }
+      setAccountNumber(data.account_number)
       setDone(true)
       if (onSwitchAccount) onSwitchAccount('real')
     } catch (e) {
@@ -70,6 +73,12 @@ export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const copyNumber = () => {
+    navigator.clipboard.writeText(accountNumber)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -82,285 +91,106 @@ export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
           font-family: 'Share Tech Mono', monospace;
           color: #e0e0e0;
         }
-
-        .settings-header {
-          max-width: 640px;
-          margin: 0 auto 32px;
-        }
-
+        .settings-header { max-width: 640px; margin: 0 auto 32px; }
         .settings-back {
-          background: none;
-          border: none;
-          color: rgba(255,255,255,0.3);
-          font-family: inherit;
-          font-size: 11px;
-          letter-spacing: 0.15em;
-          cursor: pointer;
-          padding: 0;
-          margin-bottom: 16px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: color 0.2s;
+          background: none; border: none; color: rgba(255,255,255,0.3);
+          font-family: inherit; font-size: 11px; letter-spacing: 0.15em;
+          cursor: pointer; padding: 0; margin-bottom: 16px;
+          display: flex; align-items: center; gap: 6px; transition: color 0.2s;
         }
         .settings-back:hover { color: #fff; }
-
-        .settings-title {
-          font-size: 22px;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          color: #fff;
-          margin-bottom: 4px;
-        }
-
-        .settings-sub {
-          font-size: 11px;
-          color: rgba(255,255,255,0.3);
-          letter-spacing: 0.1em;
-        }
-
+        .settings-title { font-size: 22px; font-weight: 700; letter-spacing: 0.08em; color: #fff; margin-bottom: 4px; }
+        .settings-sub { font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; }
         .settings-tabs {
-          display: flex;
-          max-width: 640px;
-          margin: 0 auto 28px;
+          display: flex; max-width: 640px; margin: 0 auto 28px;
           border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-
         .settings-tab {
-          background: none;
-          border: none;
-          border-bottom: 2px solid transparent;
-          padding: 10px 20px;
-          font-family: inherit;
-          font-size: 10px;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.3);
-          cursor: pointer;
-          transition: all 0.2s;
-          margin-bottom: -1px;
+          background: none; border: none; border-bottom: 2px solid transparent;
+          padding: 10px 20px; font-family: inherit; font-size: 10px;
+          letter-spacing: 0.18em; text-transform: uppercase;
+          color: rgba(255,255,255,0.3); cursor: pointer; transition: all 0.2s; margin-bottom: -1px;
         }
-        .settings-tab.active {
-          color: #fff;
-          border-bottom-color: #fff;
-        }
+        .settings-tab.active { color: #fff; border-bottom-color: #fff; }
+        .settings-body { max-width: 640px; margin: 0 auto; }
 
-        .settings-body {
-          max-width: 640px;
-          margin: 0 auto;
-        }
-
-        /* ── account tab ── */
-        .acc-cards {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
-          margin-bottom: 28px;
-        }
-
+        .acc-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px; }
         .acc-card {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          padding: 20px;
-          border-radius: 2px;
-          position: relative;
-          transition: border-color 0.2s;
+          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+          padding: 20px; border-radius: 2px; position: relative; transition: border-color 0.2s;
         }
-
-        .acc-card.active-demo  { border-color: rgba(234,179,8,0.4);  }
-        .acc-card.active-real  { border-color: rgba(34,197,94,0.4);  }
-
-        .acc-card-label {
-          font-size: 8px;
-          letter-spacing: 0.25em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.3);
-          margin-bottom: 8px;
-        }
-
-        .acc-card-balance {
-          font-size: 26px;
-          font-weight: 700;
-          color: #fff;
-          margin-bottom: 4px;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .acc-card-type {
-          font-size: 9px;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-        }
-
+        .acc-card.active-demo { border-color: rgba(234,179,8,0.4); }
+        .acc-card.active-real { border-color: rgba(34,197,94,0.4); }
+        .acc-card-label { font-size: 8px; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 8px; }
+        .acc-card-balance { font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+        .acc-card-type { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; }
         .acc-card-type.demo { color: #eab308; }
         .acc-card-type.real { color: #22c55e; }
+        .acc-card-badge { position: absolute; top: 12px; right: 12px; font-size: 8px; letter-spacing: 0.15em; padding: 3px 8px; border-radius: 2px; }
+        .acc-card-badge.active-demo { background: rgba(234,179,8,0.15); color: #eab308; }
+        .acc-card-badge.active-real { background: rgba(34,197,94,0.15); color: #22c55e; }
 
-        .acc-card-badge {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          font-size: 8px;
-          letter-spacing: 0.15em;
-          padding: 3px 8px;
-          border-radius: 2px;
-        }
-
-        .acc-card-badge.active-demo { background: rgba(234,179,8,0.15);  color: #eab308; }
-        .acc-card-badge.active-real { background: rgba(34,197,94,0.15);  color: #22c55e; }
-
-        /* ── kyc form ── */
-        .kyc-intro {
-          background: rgba(34,197,94,0.06);
-          border: 1px solid rgba(34,197,94,0.15);
-          padding: 16px 20px;
-          margin-bottom: 28px;
-          border-radius: 2px;
-        }
-
-        .kyc-intro-title {
-          font-size: 11px;
-          color: #22c55e;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          margin-bottom: 6px;
-        }
-
-        .kyc-intro-text {
-          font-size: 11px;
-          color: rgba(255,255,255,0.4);
-          line-height: 1.7;
-          letter-spacing: 0.05em;
-        }
-
-        .kyc-section-title {
-          font-size: 9px;
-          letter-spacing: 0.25em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.2);
-          margin: 24px 0 14px;
-          padding-bottom: 8px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .kyc-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .kyc-grid.full { grid-template-columns: 1fr; }
-
+        .kyc-intro { background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15); padding: 16px 20px; margin-bottom: 28px; border-radius: 2px; }
+        .kyc-intro-title { font-size: 11px; color: #22c55e; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; }
+        .kyc-intro-text { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.7; letter-spacing: 0.05em; }
+        .kyc-section-title { font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin: 24px 0 14px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .kyc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .kyc-field { display: flex; flex-direction: column; gap: 6px; }
         .kyc-field.span2 { grid-column: span 2; }
-
-        .kyc-label {
-          font-size: 8.5px;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.3);
-          transition: color 0.2s;
-        }
-
+        .kyc-label { font-size: 8.5px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.3); transition: color 0.2s; }
         .kyc-field.focused .kyc-label { color: #fff; }
-
         .kyc-input, .kyc-select {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-bottom-color: rgba(255,255,255,0.15);
-          color: #e0e0e0;
-          font-family: inherit;
-          font-size: 13px;
-          padding: 9px 12px;
-          outline: none;
-          transition: all 0.2s;
-          -webkit-appearance: none;
-          border-radius: 0;
-          width: 100%;
+          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+          border-bottom-color: rgba(255,255,255,0.15); color: #e0e0e0; font-family: inherit;
+          font-size: 13px; padding: 9px 12px; outline: none; transition: all 0.2s;
+          -webkit-appearance: none; border-radius: 0; width: 100%;
         }
-
-        .kyc-input:focus, .kyc-select:focus {
-          border-color: transparent;
-          border-bottom-color: #fff;
-          background: rgba(255,255,255,0.05);
-        }
-
+        .kyc-input:focus, .kyc-select:focus { border-color: transparent; border-bottom-color: #fff; background: rgba(255,255,255,0.05); }
         .kyc-input::placeholder { color: rgba(255,255,255,0.15); }
-
         .kyc-select option { background: #1a1a1f; color: #e0e0e0; }
-
-        .kyc-required {
-          color: rgba(239,68,68,0.7);
-          margin-left: 2px;
-        }
-
+        .kyc-required { color: rgba(239,68,68,0.7); margin-left: 2px; }
         .kyc-submit {
-          width: 100%;
-          margin-top: 32px;
-          padding: 14px;
-          background: transparent;
-          border: 1px solid #22c55e;
-          color: #22c55e;
-          font-family: inherit;
-          font-size: 10px;
-          letter-spacing: 0.25em;
-          text-transform: uppercase;
-          cursor: pointer;
-          transition: all 0.2s;
-          position: relative;
-          overflow: hidden;
+          width: 100%; margin-top: 32px; padding: 14px; background: transparent;
+          border: 1px solid #22c55e; color: #22c55e; font-family: inherit; font-size: 10px;
+          letter-spacing: 0.25em; text-transform: uppercase; cursor: pointer;
+          transition: all 0.2s; position: relative; overflow: hidden;
         }
-
-        .kyc-submit::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: #22c55e;
-          transform: translateX(-100%);
-          transition: transform 0.3s ease;
-          z-index: 0;
-        }
-
+        .kyc-submit::before { content: ''; position: absolute; inset: 0; background: #22c55e; transform: translateX(-100%); transition: transform 0.3s ease; z-index: 0; }
         .kyc-submit:hover::before { transform: translateX(0); }
         .kyc-submit:hover { color: #0d0d0f; }
         .kyc-submit span { position: relative; z-index: 1; }
         .kyc-submit:disabled { border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.2); cursor: not-allowed; }
         .kyc-submit:disabled::before { display: none; }
+        .kyc-err { font-size: 11px; color: #ef4444; margin-top: 12px; letter-spacing: 0.08em; }
 
-        .kyc-err {
-          font-size: 11px;
-          color: #ef4444;
-          margin-top: 12px;
-          letter-spacing: 0.08em;
-        }
+        .kyc-done { text-align: center; padding: 48px 24px; }
+        .kyc-done-icon { font-size: 48px; margin-bottom: 16px; }
+        .kyc-done-title { font-size: 18px; font-weight: 700; color: #22c55e; letter-spacing: 0.1em; margin-bottom: 8px; }
+        .kyc-done-sub { font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; line-height: 1.7; }
 
-        .kyc-done {
+        .acc-number-card {
+          margin: 28px auto 0;
+          max-width: 360px;
+          background: rgba(34,197,94,0.06);
+          border: 1px solid rgba(34,197,94,0.2);
+          border-radius: 2px;
+          padding: 24px;
           text-align: center;
-          padding: 48px 24px;
         }
-
-        .kyc-done-icon {
-          font-size: 48px;
-          margin-bottom: 16px;
+        .acc-number-label { font-size: 9px; letter-spacing: 0.25em; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-bottom: 12px; }
+        .acc-number-value { font-size: 30px; font-weight: 700; color: #22c55e; letter-spacing: 0.12em; margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+        .acc-number-hint { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 0.08em; line-height: 1.7; margin-bottom: 16px; }
+        .acc-number-copy {
+          background: none; border: 1px solid rgba(34,197,94,0.3); color: #22c55e;
+          font-family: inherit; font-size: 9px; letter-spacing: 0.15em;
+          padding: 8px 20px; cursor: pointer; text-transform: uppercase; transition: all 0.2s;
         }
-
-        .kyc-done-title {
-          font-size: 18px;
-          font-weight: 700;
-          color: #22c55e;
-          letter-spacing: 0.1em;
-          margin-bottom: 8px;
-        }
-
-        .kyc-done-sub {
-          font-size: 11px;
-          color: rgba(255,255,255,0.3);
-          letter-spacing: 0.1em;
-          line-height: 1.7;
-        }
+        .acc-number-copy:hover { background: rgba(34,197,94,0.1); }
+        .acc-number-copy.copied { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.4); }
 
         @media (max-width: 600px) {
-          .acc-cards  { grid-template-columns: 1fr; }
-          .kyc-grid   { grid-template-columns: 1fr; }
+          .acc-cards { grid-template-columns: 1fr; }
+          .kyc-grid { grid-template-columns: 1fr; }
           .kyc-field.span2 { grid-column: span 1; }
         }
       `}</style>
@@ -388,13 +218,13 @@ export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
                 <div className={`acc-card ${activeAccount === 'demo' ? 'active-demo' : ''}`}>
                   {activeAccount === 'demo' && <span className="acc-card-badge active-demo">Active</span>}
                   <div className="acc-card-label">Demo Account</div>
-                  <div className="acc-card-balance">$10,000.00</div>
+                  <div className="acc-card-balance">${Number(demoBalance || 10000).toLocaleString('en', { minimumFractionDigits: 2 })}</div>
                   <div className="acc-card-type demo">Virtual Funds</div>
                 </div>
                 <div className={`acc-card ${activeAccount === 'real' ? 'active-real' : ''}`}>
                   {activeAccount === 'real' && <span className="acc-card-badge active-real">Active</span>}
                   <div className="acc-card-label">Real Account</div>
-                  <div className="acc-card-balance">$0.00</div>
+                  <div className="acc-card-balance">${Number(realBalance || 0).toLocaleString('en', { minimumFractionDigits: 2 })}</div>
                   <div className="acc-card-type real">Live Funds</div>
                 </div>
               </div>
@@ -423,8 +253,19 @@ export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
                 <div className="kyc-done-icon">✓</div>
                 <div className="kyc-done-title">Real Account Activated</div>
                 <div className="kyc-done-sub">
-                  Your details have been submitted.<br />
+                  Your identity has been verified.<br />
                   Your real account is now active.
+                </div>
+                <div className="acc-number-card">
+                  <div className="acc-number-label">Your MetaTrader Account Number</div>
+                  <div className="acc-number-value">{accountNumber}</div>
+                  <div className="acc-number-hint">
+                    Use this number to log into MetaTrader.<br />
+                    Your password is your Arbion password.
+                  </div>
+                  <button className={`acc-number-copy ${copied ? 'copied' : ''}`} onClick={copyNumber}>
+                    {copied ? '✓ Copied' : 'Copy Number'}
+                  </button>
                 </div>
               </div>
             ) : (
@@ -441,49 +282,22 @@ export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
                 <div className="kyc-grid">
                   <div className={`kyc-field span2 ${focused === 'full_name' ? 'focused' : ''}`}>
                     <label className="kyc-label">Full Legal Name <span className="kyc-required">*</span></label>
-                    <input
-                      className="kyc-input"
-                      placeholder="As it appears on your ID"
-                      value={form.full_name}
-                      onChange={set('full_name')}
-                      onFocus={() => setFocused('full_name')}
-                      onBlur={() => setFocused(null)}
-                    />
+                    <input className="kyc-input" placeholder="As it appears on your ID" value={form.full_name} onChange={set('full_name')} onFocus={() => setFocused('full_name')} onBlur={() => setFocused(null)} />
                   </div>
                   <div className={`kyc-field ${focused === 'dob' ? 'focused' : ''}`}>
                     <label className="kyc-label">Date of Birth <span className="kyc-required">*</span></label>
-                    <input
-                      className="kyc-input"
-                      type="date"
-                      value={form.dob}
-                      onChange={set('dob')}
-                      onFocus={() => setFocused('dob')}
-                      onBlur={() => setFocused(null)}
-                    />
+                    <input className="kyc-input" type="date" value={form.dob} onChange={set('dob')} onFocus={() => setFocused('dob')} onBlur={() => setFocused(null)} />
                   </div>
                   <div className={`kyc-field ${focused === 'country' ? 'focused' : ''}`}>
                     <label className="kyc-label">Country of Residence <span className="kyc-required">*</span></label>
-                    <select
-                      className="kyc-select"
-                      value={form.country}
-                      onChange={set('country')}
-                      onFocus={() => setFocused('country')}
-                      onBlur={() => setFocused(null)}
-                    >
+                    <select className="kyc-select" value={form.country} onChange={set('country')} onFocus={() => setFocused('country')} onBlur={() => setFocused(null)}>
                       <option value="">Select country</option>
                       {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className={`kyc-field ${focused === 'phone' ? 'focused' : ''}`}>
                     <label className="kyc-label">Phone Number <span className="kyc-required">*</span></label>
-                    <input
-                      className="kyc-input"
-                      placeholder="+1 234 567 8900"
-                      value={form.phone}
-                      onChange={set('phone')}
-                      onFocus={() => setFocused('phone')}
-                      onBlur={() => setFocused(null)}
-                    />
+                    <input className="kyc-input" placeholder="+1 234 567 8900" value={form.phone} onChange={set('phone')} onFocus={() => setFocused('phone')} onBlur={() => setFocused(null)} />
                   </div>
                 </div>
 
@@ -491,26 +305,13 @@ export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
                 <div className="kyc-grid">
                   <div className={`kyc-field ${focused === 'id_type' ? 'focused' : ''}`}>
                     <label className="kyc-label">Document Type <span className="kyc-required">*</span></label>
-                    <select
-                      className="kyc-select"
-                      value={form.id_type}
-                      onChange={set('id_type')}
-                      onFocus={() => setFocused('id_type')}
-                      onBlur={() => setFocused(null)}
-                    >
+                    <select className="kyc-select" value={form.id_type} onChange={set('id_type')} onFocus={() => setFocused('id_type')} onBlur={() => setFocused(null)}>
                       {ID_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
                   <div className={`kyc-field ${focused === 'id_number' ? 'focused' : ''}`}>
                     <label className="kyc-label">Document Number <span className="kyc-required">*</span></label>
-                    <input
-                      className="kyc-input"
-                      placeholder="AB1234567"
-                      value={form.id_number}
-                      onChange={set('id_number')}
-                      onFocus={() => setFocused('id_number')}
-                      onBlur={() => setFocused(null)}
-                    />
+                    <input className="kyc-input" placeholder="AB1234567" value={form.id_number} onChange={set('id_number')} onFocus={() => setFocused('id_number')} onBlur={() => setFocused(null)} />
                   </div>
                 </div>
 
@@ -518,36 +319,15 @@ export default function Settings({ jwt, activeAccount, onSwitchAccount }) {
                 <div className="kyc-grid">
                   <div className={`kyc-field span2 ${focused === 'address' ? 'focused' : ''}`}>
                     <label className="kyc-label">Street Address</label>
-                    <input
-                      className="kyc-input"
-                      placeholder="123 Main Street"
-                      value={form.address}
-                      onChange={set('address')}
-                      onFocus={() => setFocused('address')}
-                      onBlur={() => setFocused(null)}
-                    />
+                    <input className="kyc-input" placeholder="123 Main Street" value={form.address} onChange={set('address')} onFocus={() => setFocused('address')} onBlur={() => setFocused(null)} />
                   </div>
                   <div className={`kyc-field ${focused === 'city' ? 'focused' : ''}`}>
                     <label className="kyc-label">City</label>
-                    <input
-                      className="kyc-input"
-                      placeholder="New York"
-                      value={form.city}
-                      onChange={set('city')}
-                      onFocus={() => setFocused('city')}
-                      onBlur={() => setFocused(null)}
-                    />
+                    <input className="kyc-input" placeholder="New York" value={form.city} onChange={set('city')} onFocus={() => setFocused('city')} onBlur={() => setFocused(null)} />
                   </div>
                   <div className={`kyc-field ${focused === 'postal_code' ? 'focused' : ''}`}>
                     <label className="kyc-label">Postal Code</label>
-                    <input
-                      className="kyc-input"
-                      placeholder="10001"
-                      value={form.postal_code}
-                      onChange={set('postal_code')}
-                      onFocus={() => setFocused('postal_code')}
-                      onBlur={() => setFocused(null)}
-                    />
+                    <input className="kyc-input" placeholder="10001" value={form.postal_code} onChange={set('postal_code')} onFocus={() => setFocused('postal_code')} onBlur={() => setFocused(null)} />
                   </div>
                 </div>
 

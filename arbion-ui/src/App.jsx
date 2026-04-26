@@ -148,6 +148,8 @@ export default function App() {
             <Settings
               jwt={jwt}
               activeAccount={activeAccount}
+              demoBalance={demoBalance}
+              realBalance={realBalance}
               onSwitchAccount={handleSwitchAccount}
             />
           </ProtectedRoute>
